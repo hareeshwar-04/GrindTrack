@@ -1,0 +1,317 @@
+import React, { useState } from 'react';
+import { Group, GroupMember, UserProfile } from '../types';
+import { 
+  Users, Plus, Key, Shield, Crown, Flame, Zap, Award, 
+  ExternalLink, Copy, Check, Settings, UserMinus, UserCheck, Sparkles 
+} from 'lucide-react';
+
+interface GroupsViewProps {
+  groups: Group[];
+  members: GroupMember[];
+  currentUser: UserProfile;
+  onSelectMemberProfile: (member: GroupMember) => void;
+  onCreateGroup: (name: string, description: string, isPrivate: boolean) => void;
+  onJoinGroup: (code: string) => void;
+}
+
+export const GroupsView: React.FC<GroupsViewProps> = ({
+  groups,
+  members,
+  currentUser,
+  onSelectMemberProfile,
+  onCreateGroup,
+  onJoinGroup
+}) => {
+  const [activeGroupIndex, setActiveGroupIndex] = useState(0);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
+
+  // Modal State
+  const [newGroupName, setNewGroupName] = useState('');
+  const [newGroupDesc, setNewGroupDesc] = useState('');
+  const [newGroupPrivate, setNewGroupPrivate] = useState(true);
+  const [joinCodeInput, setJoinCodeInput] = useState('');
+
+  const currentGroup = groups[activeGroupIndex] || groups[0];
+
+  const [friendHandleInput, setFriendHandleInput] = useState('');
+  const [friendInviteSuccess, setFriendInviteSuccess] = useState('');
+
+  const handleCopyShareableLink = () => {
+    if (!currentGroup) return;
+    const link = `${window.location.origin}/?join=${currentGroup.code}`;
+    navigator.clipboard.writeText(link);
+    setCopiedCode(true);
+    setTimeout(() => setCopiedCode(false), 2500);
+  };
+
+  const handleAddFriendByHandle = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!friendHandleInput.trim()) return;
+    setFriendInviteSuccess(`Invite sent to ${friendHandleInput.trim()}!`);
+    setFriendHandleInput('');
+    setTimeout(() => setFriendInviteSuccess(''), 3000);
+  };
+
+  const handleCreateSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newGroupName.trim()) return;
+    onCreateGroup(newGroupName.trim(), newGroupDesc.trim(), newGroupPrivate);
+    setShowCreateModal(false);
+    setNewGroupName('');
+    setNewGroupDesc('');
+  };
+
+  const handleJoinSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!joinCodeInput.trim()) return;
+    onJoinGroup(joinCodeInput.trim().toUpperCase());
+    setShowJoinModal(false);
+    setJoinCodeInput('');
+  };
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      
+      {/* Top Banner & Selector */}
+      <div className="glass-card p-6 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="badge badge-accent text-[10px]">PRIVATE ACCOUNTABILITY SQUAD</span>
+            <span className="text-xs text-[#9CA3AF]">• Code: <strong className="text-[#00E5FF] font-mono">{currentGroup?.code}</strong></span>
+          </div>
+          <h2 className="font-display font-extrabold text-2xl text-white flex items-center gap-3">
+            <span>{currentGroup?.icon}</span> {currentGroup?.name}
+          </h2>
+          <p className="text-xs text-[#9CA3AF] mt-1 max-w-xl">
+            {currentGroup?.description}
+          </p>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center gap-3 flex-wrap w-full lg:w-auto">
+          <button
+            onClick={handleCopyShareableLink}
+            className="btn btn-secondary text-xs py-2 px-3 flex items-center gap-1.5 border-[#00E5FF]/30 hover:border-[#00E5FF] text-[#00E5FF]"
+          >
+            {copiedCode ? <Check className="w-3.5 h-3.5 text-[#10B981]" /> : <Copy className="w-3.5 h-3.5 text-[#00E5FF]" />}
+            <span>{copiedCode ? 'Link Copied! 🔗' : 'Copy Invite Link 🔗'}</span>
+          </button>
+
+          <button
+            onClick={() => setShowJoinModal(true)}
+            className="btn btn-secondary text-xs py-2 px-3 flex items-center gap-1.5 border-[#8B5CF6]/30 hover:border-[#8B5CF6]"
+          >
+            <Key className="w-3.5 h-3.5 text-[#8B5CF6]" />
+            <span>Join via Code</span>
+          </button>
+
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="btn btn-primary text-xs py-2 px-3 flex items-center gap-1.5"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Create Squad</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Add Friend by Username Input Bar */}
+      <div className="glass-card p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <form onSubmit={handleAddFriendByHandle} className="flex items-center gap-2 w-full sm:w-auto flex-1">
+          <span className="text-xs font-bold text-white shrink-0">Invite Friend:</span>
+          <input
+            type="text"
+            value={friendHandleInput}
+            onChange={(e) => setFriendHandleInput(e.target.value)}
+            placeholder="Enter friend's username (e.g. @alex_dev)..."
+            className="bg-[#171717] border border-[#262626] focus:border-[#00E5FF] rounded-xl px-3 py-1.5 text-xs text-white outline-none w-full max-w-sm"
+          />
+          <button type="submit" className="btn btn-secondary text-xs py-1.5 px-3 shrink-0">
+            Send Invite 📩
+          </button>
+        </form>
+
+        {friendInviteSuccess && (
+          <span className="text-xs font-bold text-[#10B981] animate-fade-in">
+            ✓ {friendInviteSuccess}
+          </span>
+        )}
+      </div>
+
+      {/* Group Selector Tabs */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+        {groups.map((grp, idx) => (
+          <button
+            key={grp.id}
+            onClick={() => setActiveGroupIndex(idx)}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
+              activeGroupIndex === idx 
+                ? 'bg-gradient-to-r from-[#00E5FF] to-[#8B5CF6] text-black shadow-lg' 
+                : 'bg-[#111111] text-[#9CA3AF] border border-[#222] hover:text-white'
+            }`}
+          >
+            <span>{grp.icon}</span>
+            <span>{grp.name}</span>
+            <span className="badge badge-primary text-[9px] py-0">{grp.memberIds.length} members</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Member Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {members.map(member => (
+          <div
+            key={member.id}
+            onClick={() => onSelectMemberProfile(member)}
+            className="glass-card glass-card-interactive p-5 space-y-4 cursor-pointer relative overflow-hidden"
+          >
+            {/* Top Member Header */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <img
+                    src={member.profilePic}
+                    alt={member.username}
+                    className="w-12 h-12 rounded-xl object-cover ring-2 ring-[#00E5FF]/40"
+                  />
+                  <span className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-[#111111] ${
+                    member.onlineStatus === 'online' ? 'bg-[#10B981]' : member.onlineStatus === 'grinding' ? 'bg-[#00E5FF] animate-pulse' : 'bg-[#6B7280]'
+                  }`} />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm text-white flex items-center gap-1.5">
+                    {member.username} <span>{member.moodEmoji}</span>
+                  </h4>
+                  <p className="text-[10px] text-[#9CA3AF] font-semibold">{member.rank}</p>
+                </div>
+              </div>
+
+              <span className="badge badge-accent text-[10px] font-mono">
+                Lvl {member.level}
+              </span>
+            </div>
+
+            {/* Daily % Progress Bar */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs font-bold">
+                <span className="text-[#9CA3AF]">Today's Target</span>
+                <span className="text-[#00E5FF]">{member.todayPercentage}%</span>
+              </div>
+              <div className="w-full h-2 rounded-full bg-[#1a1a1a] overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-[#00E5FF] to-[#8B5CF6] transition-all duration-500" 
+                  style={{ width: `${member.todayPercentage}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Member Stats Matrix */}
+            <div className="grid grid-cols-3 gap-2 pt-2 border-t border-[#222] text-center">
+              <div className="p-2 rounded-xl bg-[#171717]">
+                <span className="text-[9px] text-[#9CA3AF] uppercase font-bold block">Streak</span>
+                <div className="font-display font-extrabold text-xs text-[#F59E0B] flex items-center justify-center gap-0.5 mt-0.5">
+                  <Flame className="w-3 h-3 fill-[#F59E0B]" /> {member.currentStreak}d
+                </div>
+              </div>
+
+              <div className="p-2 rounded-xl bg-[#171717]">
+                <span className="text-[9px] text-[#9CA3AF] uppercase font-bold block">Weekly</span>
+                <div className="font-display font-extrabold text-xs text-[#10B981] mt-0.5">
+                  {member.weeklyPercentage}%
+                </div>
+              </div>
+
+              <div className="p-2 rounded-xl bg-[#171717]">
+                <span className="text-[9px] text-[#9CA3AF] uppercase font-bold block">Goals</span>
+                <div className="font-display font-extrabold text-xs text-[#00E5FF] mt-0.5">
+                  {member.currentGoalCount} Active
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Status Footer */}
+            <div className="flex items-center justify-between text-[10px] text-[#9CA3AF] pt-1">
+              <span>Last seen: <strong className="text-white">{member.lastSeen}</strong></span>
+              <span className="text-[#00E5FF] font-semibold flex items-center gap-0.5 hover:underline">
+                Inspect Profile <ExternalLink className="w-3 h-3" />
+              </span>
+            </div>
+
+          </div>
+        ))}
+      </div>
+
+      {/* Modal: Create Squad */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="bg-[#111111] border border-[#222] rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+            <h3 className="font-display font-extrabold text-lg text-white">Create Private Squad</h3>
+            <form onSubmit={handleCreateSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-[#9CA3AF] mb-1">Squad Name *</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 100 Days Coding Titans"
+                  value={newGroupName}
+                  onChange={(e) => setNewGroupName(e.target.value)}
+                  className="form-input"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-[#9CA3AF] mb-1">Description & Rules</label>
+                <textarea
+                  placeholder="Daily rules and expectations..."
+                  value={newGroupDesc}
+                  onChange={(e) => setNewGroupDesc(e.target.value)}
+                  className="form-input min-h-[70px]"
+                />
+              </div>
+              <div className="flex items-center justify-between pt-2">
+                <button type="button" onClick={() => setShowCreateModal(false)} className="btn btn-secondary text-xs">
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary text-xs">
+                  Create Squad 🚀
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Join Squad */}
+      {showJoinModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="bg-[#111111] border border-[#222] rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+            <h3 className="font-display font-extrabold text-lg text-white">Join Squad with Invite Code</h3>
+            <form onSubmit={handleJoinSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-[#9CA3AF] mb-1">Enter 8-Digit Invite Code</label>
+                <input
+                  type="text"
+                  placeholder="e.g. ALPHA-9921"
+                  value={joinCodeInput}
+                  onChange={(e) => setJoinCodeInput(e.target.value)}
+                  className="form-input font-mono uppercase"
+                  required
+                />
+              </div>
+              <div className="flex items-center justify-between pt-2">
+                <button type="button" onClick={() => setShowJoinModal(false)} className="btn btn-secondary text-xs">
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary text-xs">
+                  Join Squad
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+};
