@@ -408,6 +408,7 @@ export function App() {
               setSpreadsheetConfig(config);
               StoreService.saveSpreadsheetConfig(config);
             }}
+            onSignOut={handleSignOut}
           />
         )}
 

@@ -73,12 +73,10 @@ export const LandingView: React.FC<LandingViewProps> = ({ onLoginSuccess }) => {
           <span className="font-display font-black text-xl tracking-tight text-white">GrindTrack</span>
         </div>
 
-        <button
-          onClick={() => onLoginSuccess('guest@grindtrack.app', 'Guest Grinder')}
-          className="btn btn-secondary text-xs py-2 px-4 border-[#333] hover:border-[#00E5FF] text-[#9CA3AF] hover:text-white"
-        >
-          Explore Demo Mode ⚡
-        </button>
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#111111] border border-[#222] text-[#9CA3AF] text-xs font-semibold">
+          <Shield className="w-3.5 h-3.5 text-[#00E5FF]" />
+          <span>Secured Authentication</span>
+        </div>
       </header>
 
       {/* Hero Body */}

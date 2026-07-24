@@ -8,13 +8,15 @@ interface SettingsViewProps {
   onUpdateUser: (updated: Partial<UserProfile>) => void;
   spreadsheetConfig: SpreadsheetConfig;
   onUpdateSpreadsheetConfig: (config: SpreadsheetConfig) => void;
+  onSignOut?: () => void;
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
   user,
   onUpdateUser,
   spreadsheetConfig,
-  onUpdateSpreadsheetConfig
+  onUpdateSpreadsheetConfig,
+  onSignOut
 }) => {
   const [activeTab, setActiveTab] = useState<'profile' | 'database' | 'notifications' | 'privacy'>('database');
 
@@ -79,6 +81,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             Configure spreadsheet database connectors, profile credentials, and notification schedules.
           </p>
         </div>
+
+        {onSignOut && (
+          <button
+            onClick={onSignOut}
+            className="px-4 py-2 rounded-xl bg-[#EF4444]/15 text-[#EF4444] hover:bg-[#EF4444]/25 border border-[#EF4444]/30 text-xs font-bold transition-colors"
+          >
+            Sign Out 🚪
+          </button>
+        )}
       </div>
 
       {syncStatusMsg && (
