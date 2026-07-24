@@ -18,12 +18,16 @@ import { AnalyticsView } from './views/AnalyticsView';
 import { CalendarView } from './views/CalendarView';
 import { SettingsView } from './views/SettingsView';
 import { AdminView } from './views/AdminView';
+import { LandingView } from './views/LandingView';
 
 import { StoreService, calculateXP, MOCK_GROUP_MEMBERS } from './services/store';
 import { Goal, UserProfile, Group, ActivityFeedItem, NotificationItem, Badge, SpreadsheetConfig, GroupMember, TaskStatus, SystemAnnouncement, TargetDay } from './types';
 
 export function App() {
   const [activeView, setActiveView] = useState('dashboard');
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return localStorage.getItem('grindtrack_logged_in') === 'true';
+  });
   
   // App state loaded from Store Service
   const [user, setUser] = useState<UserProfile>(() => StoreService.getUser());
@@ -270,6 +274,21 @@ export function App() {
       status: 'pending'
     });
   };
+
+  const handleLoginSuccess = (email: string, username: string) => {
+    localStorage.setItem('grindtrack_logged_in', 'true');
+    setIsAuthenticated(true);
+    handleSaveUser({ email, username });
+  };
+
+  const handleSignOut = () => {
+    localStorage.removeItem('grindtrack_logged_in');
+    setIsAuthenticated(false);
+  };
+
+  if (!isAuthenticated) {
+    return <LandingView onLoginSuccess={handleLoginSuccess} />;
+  }
 
   return (
     <div className="min-h-screen bg-[#080808] text-[#F9FAFB] font-main selection:bg-[#00E5FF]/30 selection:text-white">
