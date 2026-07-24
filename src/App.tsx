@@ -21,6 +21,7 @@ import { AdminView } from './views/AdminView';
 import { LandingView } from './views/LandingView';
 
 import { StoreService, calculateXP, MOCK_GROUP_MEMBERS } from './services/store';
+import { supabase } from './services/supabase';
 import { Goal, UserProfile, Group, ActivityFeedItem, NotificationItem, Badge, SpreadsheetConfig, GroupMember, TaskStatus, SystemAnnouncement, TargetDay } from './types';
 
 export function App() {
@@ -48,6 +49,35 @@ export function App() {
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<GroupMember | null>(null);
+
+  // Listen for Supabase Magic Link authentication redirects
+  useEffect(() => {
+    if (!supabase) return;
+
+    // Check current session on mount
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setIsAuthenticated(true);
+        localStorage.setItem('grindtrack_logged_in', 'true');
+        const email = session.user.email || '';
+        const username = session.user.user_metadata?.username || email.split('@')[0];
+        setUser(prev => ({ ...prev, email, username }));
+      }
+    });
+
+    // Listen to live auth state changes (Magic Link clicked)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setIsAuthenticated(true);
+        localStorage.setItem('grindtrack_logged_in', 'true');
+        const email = session.user.email || '';
+        const username = session.user.user_metadata?.username || email.split('@')[0];
+        setUser(prev => ({ ...prev, email, username }));
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   // Check URL parameter for ?join=CODE share links
   useEffect(() => {
