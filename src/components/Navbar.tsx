@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { UserProfile, NotificationItem } from '../types';
-import { Zap, Flame, Search, Bell, ShieldCheck, User as UserIcon, Plus, CheckCircle2, ChevronDown } from 'lucide-react';
+import { Zap, Flame, Search, Bell, ShieldCheck, User as UserIcon, Plus, CheckCircle2, ChevronDown, LogOut } from 'lucide-react';
 
 interface NavbarProps {
   user: UserProfile;
@@ -10,6 +10,7 @@ interface NavbarProps {
   onOpenNewGoal: () => void;
   onOpenSearch: () => void;
   onOpenAuth?: () => void;
+  onSignOut?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -19,7 +20,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   notifications,
   onOpenNewGoal,
   onOpenSearch,
-  onOpenAuth
+  onOpenAuth,
+  onSignOut
 }) => {
   const [showNotifMenu, setShowNotifMenu] = useState(false);
   const unreadNotifs = notifications.filter(n => !n.read).length;
@@ -167,6 +169,17 @@ export const Navbar: React.FC<NavbarProps> = ({
               className="w-7 h-7 rounded-lg object-cover ring-2 ring-[#00E5FF]/40"
             />
           </div>
+
+          {/* Quick Sign Out Button */}
+          {onSignOut && (
+            <button
+              onClick={onSignOut}
+              title="Sign Out"
+              className="p-2 rounded-xl bg-[#111111] border border-[#222] text-[#9CA3AF] hover:text-[#EF4444] hover:border-[#EF4444]/40 transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          )}
 
         </div>
       </div>

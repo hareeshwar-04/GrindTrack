@@ -302,6 +302,7 @@ export function App() {
         onOpenNewGoal={() => setIsGoalModalOpen(true)}
         onOpenSearch={() => setIsSearchModalOpen(true)}
         onOpenAuth={() => setIsAuthModalOpen(true)}
+        onSignOut={handleSignOut}
       />
 
       {/* Main Application Container */}
