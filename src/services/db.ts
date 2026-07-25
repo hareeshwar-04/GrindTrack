@@ -38,6 +38,26 @@ export class DatabaseService {
     };
   }
 
+  static async createProfile(userId: string, email: string, username: string): Promise<UserProfile | null> {
+    if (!supabase) return null;
+    
+    // Attempt to insert
+    const { error } = await supabase.from('profiles').insert({
+      id: userId,
+      email,
+      username,
+      profile_pic: `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`
+    });
+    
+    // Ignore 23505 (unique violation) in case the trigger beat us to it
+    if (error && error.code !== '23505') {
+      console.error('Failed to create profile fallback:', error);
+      return null;
+    }
+    
+    return this.getProfile(userId);
+  }
+
   static async updateProfile(userId: string, updates: Partial<UserProfile>) {
     if (!supabase) return;
     

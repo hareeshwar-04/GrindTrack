@@ -103,13 +103,15 @@ export function App() {
     // 1. Fetch Profile
     let loadedUser = await DatabaseService.getProfile(userId);
     
-    // If the profile doesn't exist yet (e.g. race condition with trigger), fall back or retry
+    // If the profile doesn't exist yet (e.g. race condition with trigger, or old auth user after a schema wipe)
     if (!loadedUser) {
-      console.warn('Profile not found, retrying...');
-      await new Promise(r => setTimeout(r, 1000));
-      loadedUser = await DatabaseService.getProfile(userId);
+      console.warn('Profile not found, attempting to create one via fallback...');
+      loadedUser = await DatabaseService.createProfile(userId, email, username || email.split('@')[0]);
+      
       if (!loadedUser) {
-        showToast('Error loading profile from database.', 'error');
+        // Ultimate fallback if create fails
+        showToast('Error loading or creating profile from database.', 'error');
+        setAuthState('unauthenticated');
         return;
       }
     }
