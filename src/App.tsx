@@ -23,6 +23,7 @@ const SettingsView = React.lazy(() => import('./views/SettingsView').then(m => (
 const AdminView = React.lazy(() => import('./views/AdminView').then(m => ({ default: m.AdminView })));
 import { LandingView } from './views/LandingView';
 
+import { DatabaseService } from './services/db';
 import { StoreService, calculateXP } from './services/store';
 import { supabase } from './services/supabase';
 import { Goal, UserProfile, Group, ActivityFeedItem, NotificationItem, Badge, SpreadsheetConfig, GroupMember, TaskStatus, SystemAnnouncement, TargetDay } from './types';
@@ -95,27 +96,49 @@ export function App() {
   const [selectedMember, setSelectedMember] = useState<GroupMember | null>(null);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
 
-  // Core function: Load all data for a specific user email
-  const loadUserData = useCallback((email: string, username?: string, reason?: 'signin' | 'signup' | 'session') => {
+  // Core function: Load all data from real Supabase Backend
+  const loadUserData = useCallback(async (userId: string, email: string, username?: string, reason?: 'signin' | 'signup' | 'session') => {
     localStorage.setItem('grindtrack_active_email', email);
 
-    const loadedUser = StoreService.getUser(email);
+    // 1. Fetch Profile
+    let loadedUser = await DatabaseService.getProfile(userId);
+    
+    // If the profile doesn't exist yet (e.g. race condition with trigger), fall back or retry
+    if (!loadedUser) {
+      console.warn('Profile not found, retrying...');
+      await new Promise(r => setTimeout(r, 1000));
+      loadedUser = await DatabaseService.getProfile(userId);
+      if (!loadedUser) {
+        showToast('Error loading profile from database.', 'error');
+        return;
+      }
+    }
+
     // If a username was passed (from Supabase metadata), update it
     if (username && loadedUser.username !== username) {
       loadedUser.username = username;
-      StoreService.saveUser(loadedUser);
+      await DatabaseService.updateProfile(userId, { username });
     }
 
     setUser(loadedUser);
-    setGoals(StoreService.getGoals(email));
-    setGroups(StoreService.getGroups(email));
+    
+    // 2. Fetch Goals & Squads asynchronously
+    const [fetchedGoals, fetchedGroups] = await Promise.all([
+      DatabaseService.getGoals(userId),
+      DatabaseService.getUserSquads(userId)
+    ]);
+    
+    setGoals(fetchedGoals);
+    setGroups(fetchedGroups);
+    
+    // 3. Fallback for things not yet migrated to Supabase (Activities, Notifications, Badges)
     setActivities(StoreService.getActivities(email));
     setNotifications(StoreService.getNotifications(email));
     setBadges(StoreService.getBadges(email));
     setSpreadsheetConfig(StoreService.getSpreadsheetConfig(email));
     
     // Build the user's own leaderboard entry from their real stats
-    const todayGoals = StoreService.getGoals(email).filter(g => g.targetDay === 'today');
+    const todayGoals = fetchedGoals.filter(g => g.targetDay === 'today');
     const completedToday = todayGoals.filter(g => g.status === 'completed').length;
     const todayPct = todayGoals.length > 0 ? Math.round((completedToday / todayGoals.length) * 100) : 0;
     
@@ -127,9 +150,8 @@ export function App() {
       currentGoalCount: todayGoals.length
     };
     
-    // Simulate active multiplayer environment by generating rivals on load
-    const rivals = StoreService.generateRivals(loadedUser.level || 1, 6);
-    setGroupMembers([userAsMember, ...rivals]);
+    // Remove the simulated rivals; now we only show real members (just the user for now until they join a squad)
+    setGroupMembers([userAsMember]);
     
     handleSetActiveView('dashboard');
     setVerifyReason(reason || 'signin');
@@ -149,10 +171,11 @@ export function App() {
     // 1. Check existing session on page load
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!mounted) return;
-      if (session?.user?.email) {
+      if (session?.user?.email && session?.user?.id) {
         const email = session.user.email;
+        const userId = session.user.id;
         const username = session.user.user_metadata?.username || email.split('@')[0];
-        loadUserData(email, username, 'session');
+        loadUserData(userId, email, username, 'session');
       } else {
         setAuthState('unauthenticated');
       }
@@ -162,13 +185,14 @@ export function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!mounted) return;
 
-      if (event === 'SIGNED_IN' && session?.user?.email) {
+      if (event === 'SIGNED_IN' && session?.user?.email && session?.user?.id) {
         const email = session.user.email;
+        const userId = session.user.id;
         const username = session.user.user_metadata?.username || email.split('@')[0];
         // Detect if this is a fresh email verification (user confirmed their email)
         const isEmailVerify = session.user.email_confirmed_at && 
           (Date.now() - new Date(session.user.email_confirmed_at).getTime()) < 60000;
-        loadUserData(email, username, isEmailVerify ? 'signup' : 'signin');
+        loadUserData(userId, email, username, isEmailVerify ? 'signup' : 'signin');
       } else if (event === 'SIGNED_OUT') {
         localStorage.removeItem('grindtrack_active_email');
         setUser(EMPTY_USER);
@@ -226,56 +250,70 @@ export function App() {
   }, []);
 
   // ─── Handlers ─────────────────────────────────────────
-  const handleSaveUser = (updated: Partial<UserProfile>) => {
+  const handleSaveUser = async (updated: Partial<UserProfile>) => {
     const newProfile = { ...user, ...updated };
     setUser(newProfile);
-    StoreService.saveUser(newProfile);
+    await DatabaseService.updateProfile(user.id, updated);
   };
 
   const handleUpdateGoals = (newGoals: Goal[]) => {
     setGoals(newGoals);
-    StoreService.saveGoals(newGoals, user.email);
+    // Note: We don't have a batch save in DatabaseService for simplicity.
+    // Realtime updates would usually handle single-goal mutations via specific functions.
+    // For now, we update local state immediately. The specific update functions (status change) will trigger DB calls separately.
   };
 
-  const handleCreateGoal = (partialGoal: Partial<Goal>) => {
-    const newGoal: Goal = {
-      id: 'g_' + Date.now(),
-      title: partialGoal.title || 'New Goal',
-      description: partialGoal.description || '',
-      category: partialGoal.category || 'Work',
-      deadline: partialGoal.deadline || '21:00',
-      estimatedMinutes: partialGoal.estimatedMinutes || 30,
-      difficulty: partialGoal.difficulty || 'medium',
-      colorLabel: partialGoal.colorLabel || '#00E5FF',
-      tags: partialGoal.tags || [],
-      subtasks: partialGoal.subtasks || [],
-      recurring: partialGoal.recurring || 'none',
-      status: 'pending',
-      targetDay: partialGoal.targetDay || 'today',
-      createdAt: new Date().toISOString(),
-      userId: user.id
-    };
+  const handleCreateGoal = async (partialGoal: Partial<Goal>) => {
+    try {
+      const dbGoal = await DatabaseService.createGoal(user.id, partialGoal as Omit<Goal, 'id' | 'createdAt' | 'userId'>);
+      if (dbGoal) {
+        // Construct the full goal object as expected by frontend
+        const newGoal: Goal = {
+          id: dbGoal.id,
+          title: dbGoal.title,
+          description: dbGoal.description || '',
+          category: dbGoal.category as any,
+          deadline: dbGoal.deadline,
+          estimatedMinutes: dbGoal.estimated_minutes,
+          difficulty: dbGoal.difficulty as any,
+          colorLabel: dbGoal.color_label,
+          tags: dbGoal.tags || [],
+          subtasks: dbGoal.subtasks || [],
+          recurring: dbGoal.recurring as any,
+          status: dbGoal.status as any,
+          targetDay: dbGoal.target_day as any,
+          targetDate: dbGoal.target_date,
+          completedAt: dbGoal.completed_at,
+          createdAt: dbGoal.created_at,
+          userId: dbGoal.user_id,
+          groupId: dbGoal.squad_id
+        };
+        setGoals(prev => [newGoal, ...prev]);
+        showToast('Goal created successfully!', 'success');
+        
+        const newAct: ActivityFeedItem = {
+          id: 'act_' + Date.now(),
+          userId: user.id,
+          userName: user.username,
+          userAvatar: user.profilePic,
+          type: 'goal_completed',
+          text: `created a new goal "${newGoal.title}"`,
+          timestamp: 'Just now',
+          reactions: [],
+          comments: []
+        };
+        const updatedActs = [newAct, ...activities];
+        setActivities(updatedActs);
+        StoreService.saveActivities(updatedActs, user.email);
 
-    const updated = [newGoal, ...goals];
-    handleUpdateGoals(updated);
-
-    const newAct: ActivityFeedItem = {
-      id: 'act_' + Date.now(),
-      userId: user.id,
-      userName: user.username,
-      userAvatar: user.profilePic,
-      type: 'goal_completed',
-      text: `created a new goal "${newGoal.title}"`,
-      timestamp: 'Just now',
-      reactions: [],
-      comments: []
-    };
-    const updatedActs = [newAct, ...activities];
-    setActivities(updatedActs);
-    StoreService.saveActivities(updatedActs, user.email);
-
-    // Update total goals stat
-    handleSaveUser({ totalGoals: user.totalGoals + 1 });
+        // Update total goals stat
+        handleSaveUser({ totalGoals: user.totalGoals + 1 });
+      }
+    } catch (e) {
+      console.error(e);
+      showToast('Failed to create goal', 'error');
+      return;
+    }
   };
 
   const handleUpdateGoalStatus = (goalId: string, status: TaskStatus) => {
@@ -713,53 +751,30 @@ export function App() {
             members={groupMembers}
             currentUser={user}
             onSelectMemberProfile={(m) => setSelectedMember(m)}
-            onCreateGroup={(name, desc, isPrivate) => {
-              const now = new Date().toISOString();
-              const newGrp: Group = {
-                id: 'grp_' + Date.now(), name, description: desc, icon: '⚡',
-                code: 'TITAN-' + Math.floor(1000 + Math.random() * 9000),
-                isPrivate, ownerId: user.id, adminIds: [user.id],
-                memberIds: [user.id],
-                memberData: {
-                  [user.id]: { joinedAt: now, xp: 0 }
-                },
-                createdAt: now
-              };
-              const updatedGroups = [...groups, newGrp];
-              setGroups(updatedGroups);
-              StoreService.saveGroups(updatedGroups, user.email);
+            onCreateGroup={async (name, desc, isPrivate) => {
+              try {
+                const newSquad = await DatabaseService.createSquad(user.id, name, desc, isPrivate);
+                if (newSquad) {
+                  setGroups([...groups, newSquad]);
+                  showToast('Squad created successfully!', 'success');
+                }
+              } catch (e: any) {
+                console.error(e);
+                showToast(e.message || 'Failed to create squad', 'error');
+              }
             }}
-            onJoinGroup={(code) => {
-              const matchedIdx = groups.findIndex(g => g.code === code);
-              if (matchedIdx !== -1) {
-                const now = new Date().toISOString();
-                const updatedGroups = groups.map((g, idx) => {
-                  if (idx === matchedIdx) {
-                    return {
-                      ...g,
-                      memberIds: g.memberIds.includes(user.id) ? g.memberIds : [...g.memberIds, user.id],
-                      memberData: {
-                        ...g.memberData,
-                        [user.id]: g.memberData?.[user.id] || { joinedAt: now, xp: 0 }
-                      }
-                    };
-                  }
-                  return g;
-                });
-                setGroups(updatedGroups);
-                StoreService.saveGroups(updatedGroups, user.email);
-                showToast(`Joined squad "${groups[matchedIdx].name}" successfully! Your XP in this squad starts from 0.`, 'success');
-              } else {
-                // Simulated Multiplayer: Generate a dynamic squad on the fly!
-                const { group: mockGroup, members: mockMembers } = StoreService.generateMockSquad(code, user.id);
-                const updatedGroups = [...groups, mockGroup];
-                setGroups(updatedGroups);
-                StoreService.saveGroups(updatedGroups, user.email);
-                
-                // Add the new mock members to the global pool so they render
-                setGroupMembers(prev => [...prev, ...mockMembers]);
-                
-                showToast(`Joined squad "${mockGroup.name}"! Watch out, they are highly active.`, 'success');
+            onJoinGroup={async (code) => {
+              try {
+                const joinedSquad = await DatabaseService.joinSquadWithCode(user.id, code);
+                if (joinedSquad) {
+                  // Re-fetch squads to get the full squad data
+                  const allSquads = await DatabaseService.getUserSquads(user.id);
+                  setGroups(allSquads);
+                  showToast(`Joined squad successfully!`, 'success');
+                }
+              } catch (e: any) {
+                console.error(e);
+                showToast(e.message || 'Failed to join squad', 'error');
               }
             }}
           />
