@@ -133,7 +133,7 @@ export function App() {
     
     handleSetActiveView('dashboard');
     setVerifyReason(reason || 'signin');
-    setAuthState('verified');
+    setAuthState(prev => prev === 'authenticated' ? 'authenticated' : 'verified');
   }, []);
 
   // Listen for Supabase auth state (single source of truth)
