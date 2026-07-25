@@ -219,64 +219,100 @@ export const GoalModal: React.FC<GoalModalProps> = ({
                   className="form-input min-h-[60px] resize-none"
                 />
               </div>
-
-              {/* Category & Priority Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                   {/* Category & Priority Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
-                  <label className="block text-xs font-bold text-[#9CA3AF] mb-1">Category</label>
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value as Category)}
-                    className="form-select text-xs"
-                  >
-                    <option value="Work">💼 Work</option>
-                    <option value="Code">💻 Code</option>
-                    <option value="Health">🏋️ Health</option>
-                    <option value="Study">📚 Study</option>
-                    <option value="Personal">🧘 Personal</option>
-                    <option value="Finance">💰 Finance</option>
-                  </select>
+                  <label className="block text-xs font-bold text-[#9CA3AF] mb-2">Category</label>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {[
+                      { val: 'Work', icon: '💼' },
+                      { val: 'Code', icon: '💻' },
+                      { val: 'Health', icon: '🏋️' },
+                      { val: 'Study', icon: '📚' },
+                      { val: 'Personal', icon: '🧘' },
+                      { val: 'Finance', icon: '💰' }
+                    ].map(c => (
+                      <button
+                        key={c.val}
+                        type="button"
+                        onClick={() => setCategory(c.val as Category)}
+                        className={`p-2 rounded-xl text-xs flex flex-col items-center gap-1 transition-all border ${
+                          category === c.val ? 'bg-[#00E5FF]/20 border-[#00E5FF]/50 text-white font-bold' : 'bg-[#171717] border-[#262626] text-[#9CA3AF] hover:bg-[#222]'
+                        }`}
+                      >
+                        <span className="text-sm">{c.icon}</span>
+                        <span>{c.val}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#9CA3AF] mb-1">Difficulty</label>
+                  <label className="block text-xs font-bold text-[#9CA3AF] mb-2">Difficulty (XP Earned)</label>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {[
+                      { val: 'easy', label: 'Easy (10 XP)', color: 'border-[#10B981]', bg: 'bg-[#10B981]/10', active: 'bg-[#10B981] text-black' },
+                      { val: 'medium', label: 'Medium (25 XP)', color: 'border-[#F59E0B]', bg: 'bg-[#F59E0B]/10', active: 'bg-[#F59E0B] text-black' },
+                      { val: 'hard', label: 'Hard (50 XP)', color: 'border-[#EF4444]', bg: 'bg-[#EF4444]/10', active: 'bg-[#EF4444] text-white' },
+                      { val: 'beast', label: 'Beast (100 XP)', color: 'border-[#8B5CF6]', bg: 'bg-[#8B5CF6]/10', active: 'bg-[#8B5CF6] text-white' }
+                    ].map(d => (
+                      <button
+                        key={d.val}
+                        type="button"
+                        onClick={() => setDifficulty(d.val as Difficulty)}
+                        className={`p-2 rounded-xl text-[10px] font-bold text-center transition-all border ${d.color} ${
+                          difficulty === d.val ? d.active : `${d.bg} text-[#9CA3AF] hover:opacity-80`
+                        }`}
+                      >
+                        {d.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Time & Recurring Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                <div>
+                  <label className="block text-xs font-bold text-[#9CA3AF] mb-1">Time Due</label>
+                  <div className="relative">
+                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]" />
+                    <input
+                      type="time"
+                      value={deadline}
+                      onChange={(e) => setDeadline(e.target.value)}
+                      className="form-input pl-9"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-xs font-bold text-[#9CA3AF] mb-1">Est. Minutes</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="5" max="480" step="5"
+                      value={estimatedMinutes}
+                      onChange={(e) => setEstimatedMinutes(Number(e.target.value))}
+                      className="form-input text-center"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#9CA3AF] mb-1">Repeat?</label>
                   <select
-                    value={difficulty}
-                    onChange={(e) => setDifficulty(e.target.value as Difficulty)}
-                    className="form-select text-xs"
+                    value={recurring}
+                    onChange={(e) => setRecurring(e.target.value as 'none' | 'daily' | 'weekdays')}
+                    className="form-select h-[42px]"
                   >
-                    <option value="easy">🟩 Easy (10 XP)</option>
-                    <option value="medium">🟨 Medium (25 XP)</option>
-                    <option value="hard">🟥 Hard (50 XP)</option>
-                    <option value="beast">🔥 Beast (100 XP)</option>
+                    <option value="none">Don't repeat</option>
+                    <option value="daily">Every Day</option>
+                    <option value="weekdays">Weekdays Only</option>
                   </select>
                 </div>
               </div>
 
-              {/* Time Settings */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-[#9CA3AF] mb-1">Deadline Time</label>
-                  <input
-                    type="time"
-                    value={deadline}
-                    onChange={(e) => setDeadline(e.target.value)}
-                    className="form-input text-xs"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-[#9CA3AF] mb-1">Est. Time (mins)</label>
-                  <input
-                    type="number"
-                    min={5}
-                    max={480}
-                    value={estimatedMinutes}
-                    onChange={(e) => setEstimatedMinutes(Number(e.target.value))}
-                    className="form-input text-xs"
-                  />
-                </div>
-              </div>
 
               {/* Color Label & Tags */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -2,49 +2,37 @@ import { Goal, UserProfile, Group, ActivityFeedItem, Badge, SpreadsheetConfig, N
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 
-// Initial Mock Seed User
+// Initial Blank User
 export const INITIAL_USER: UserProfile = {
   id: 'user_1',
-  username: 'Hareesh',
-  email: 'hareesh@grindtrack.io',
-  profilePic: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
-  bio: 'Fullstack Dev & Systems Architect. Building every day. Zero excuses.',
-  timezone: 'Asia/Kolkata (GMT+5:30)',
+  username: 'Grinder',
+  email: 'demo@grindtrack.app',
+  profilePic: 'https://api.dicebear.com/7.x/bottts/svg?seed=Grinder',
+  bio: 'Building consistent habits daily on GrindTrack.',
+  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata',
   darkTheme: true,
-  currentStreak: 14,
-  longestStreak: 28,
-  xp: 3450,
-  level: 7,
-  rank: 'Diamond Grinder',
-  totalGoals: 142,
-  completedGoals: 128,
-  failedGoals: 9,
-  skippedGoals: 5,
-  consistencyRate: 94.5,
-  successRate: 90.1,
-  avgCompletionTimeMins: 42,
-  mostProductiveHour: '09:00 AM - 11:00 AM',
-  mostProductiveDay: 'Tuesday',
-  badgesUnlocked: ['b1', 'b3', 'b5', 'b7', 'b8', 'b9'],
-  moodEmoji: '🔥',
-  onlineStatus: 'grinding',
+  currentStreak: 0,
+  longestStreak: 0,
+  xp: 0,
+  level: 1,
+  rank: 'Novice Grinder',
+  totalGoals: 0,
+  completedGoals: 0,
+  failedGoals: 0,
+  skippedGoals: 0,
+  consistencyRate: 0,
+  successRate: 0,
+  avgCompletionTimeMins: 0,
+  mostProductiveHour: 'Not enough data',
+  mostProductiveDay: 'Not enough data',
+  badgesUnlocked: [],
+  moodEmoji: '⚡',
+  onlineStatus: 'online',
   lastSeen: 'Just now',
-  heatmapData: generateInitialHeatmap()
+  heatmapData: {}
 };
 
-function generateInitialHeatmap(): Record<string, number> {
-  const map: Record<string, number> = {};
-  const today = new Date();
-  for (let i = 0; i < 365; i++) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    const isoKey = d.toISOString().split('T')[0];
-    // Random realistic activity frequency (80% non-zero)
-    const val = Math.random() > 0.2 ? Math.floor(Math.random() * 5) + 1 : 0;
-    map[isoKey] = val;
-  }
-  return map;
-}
+
 
 // Fresh badges template — all locked with 0 progress for new users
 export const FRESH_BADGES: Badge[] = [
@@ -63,319 +51,16 @@ export const FRESH_BADGES: Badge[] = [
 // Legacy mock badges for demo reference (not used for new accounts)
 export const INITIAL_BADGES = FRESH_BADGES;
 
-export const INITIAL_GOALS: Goal[] = [
-  {
-    id: 'g1',
-    title: 'Review SystemVerilog RTL Architecture',
-    description: 'Optimize timing paths and check testbench coverage report for final release',
-    category: 'Work',
-    deadline: '22:00',
-    estimatedMinutes: 60,
-    difficulty: 'hard',
-    colorLabel: '#00E5FF',
-    tags: ['VLSI', 'Verilog', 'Work'],
-    subtasks: [
-      { id: 'st1', title: 'Run lint check with zero warnings', completed: true },
-      { id: 'st2', title: 'Verify synthesized gate-level simulation', completed: true },
-      { id: 'st3', title: 'Generate code coverage report html', completed: false }
-    ],
-    recurring: 'daily',
-    status: 'pending',
-    targetDay: 'today',
-    createdAt: new Date().toISOString(),
-    userId: 'user_1'
-  },
-  {
-    id: 'g2',
-    title: 'Morning 5K Gym Run & Hydration',
-    description: 'Target sub-25 min pace and 3L total water intake',
-    category: 'Health',
-    deadline: '08:00',
-    estimatedMinutes: 45,
-    difficulty: 'medium',
-    colorLabel: '#10B981',
-    tags: ['Fitness', 'Cardio'],
-    subtasks: [
-      { id: 'st4', title: 'Warm-up dynamic stretches', completed: true },
-      { id: 'st5', title: '5K run complete', completed: true }
-    ],
-    recurring: 'daily',
-    status: 'completed',
-    targetDay: 'today',
-    completedAt: '2026-07-24T08:22:00Z',
-    createdAt: new Date().toISOString(),
-    userId: 'user_1'
-  },
-  {
-    id: 'g3',
-    title: 'Deploy GrindTrack Production Build to Vercel',
-    description: 'Verify PWA manifest, service worker offline fallback & webhooks',
-    category: 'Study',
-    deadline: '23:59',
-    estimatedMinutes: 30,
-    difficulty: 'beast',
-    colorLabel: '#8B5CF6',
-    tags: ['SaaS', 'Deploy', 'Vite'],
-    subtasks: [
-      { id: 'st6', title: 'Configure environment secret keys', completed: true },
-      { id: 'st7', title: 'Audit Lighthouse score >= 95', completed: false }
-    ],
-    recurring: 'none',
-    status: 'pending',
-    targetDay: 'today',
-    createdAt: new Date().toISOString(),
-    userId: 'user_1'
-  },
-  {
-    id: 'g4',
-    title: 'Read 20 Pages of Atomic Habits',
-    description: 'Chapter on identity-based habit loops and social accountability design',
-    category: 'Personal',
-    deadline: '12:00',
-    estimatedMinutes: 25,
-    difficulty: 'easy',
-    colorLabel: '#F59E0B',
-    tags: ['Reading', 'Mindset'],
-    subtasks: [],
-    recurring: 'daily',
-    status: 'pending',
-    targetDay: 'tomorrow',
-    createdAt: new Date().toISOString(),
-    userId: 'user_1'
-  },
-  {
-    id: 'g5',
-    title: 'Setup Google Sheets API Webhook Sync',
-    description: 'Hook spreadsheet rows directly to task list auto-import engine',
-    category: 'Finance',
-    deadline: '17:00',
-    estimatedMinutes: 40,
-    difficulty: 'hard',
-    colorLabel: '#00E5FF',
-    tags: ['Integration', 'API'],
-    subtasks: [
-      { id: 'st8', title: 'Format CSV column headers', completed: false },
-      { id: 'st9', title: 'Test auto-pull on page load', completed: false }
-    ],
-    recurring: 'none',
-    status: 'pending',
-    targetDay: 'tomorrow',
-    createdAt: new Date().toISOString(),
-    userId: 'user_1'
-  }
-];
+export const INITIAL_GOALS: Goal[] = [];
 
-export const MOCK_GROUP_MEMBERS: GroupMember[] = [
-  {
-    ...INITIAL_USER,
-    todayPercentage: 66,
-    weeklyPercentage: 92,
-    monthlyPercentage: 95,
-    currentGoalCount: 3,
-  },
-  {
-    id: 'user_2',
-    username: 'Rahul Verma',
-    email: 'rahul@dev.io',
-    profilePic: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80',
-    bio: 'Backend Specialist | Rust & Go Enthusiast',
-    timezone: 'Asia/Kolkata',
-    darkTheme: true,
-    currentStreak: 15,
-    longestStreak: 21,
-    xp: 4120,
-    level: 8,
-    rank: 'Master Grinder',
-    totalGoals: 160,
-    completedGoals: 151,
-    failedGoals: 6,
-    skippedGoals: 3,
-    consistencyRate: 96.0,
-    successRate: 94.3,
-    avgCompletionTimeMins: 38,
-    mostProductiveHour: '08:00 AM - 10:00 AM',
-    mostProductiveDay: 'Monday',
-    badgesUnlocked: ['b1', 'b3', 'b5', 'b8', 'b9'],
-    moodEmoji: '💪',
-    onlineStatus: 'online',
-    lastSeen: 'Active 2m ago',
-    heatmapData: {},
-    todayPercentage: 100,
-    weeklyPercentage: 96,
-    monthlyPercentage: 94,
-    currentGoalCount: 4
-  },
-  {
-    id: 'user_3',
-    username: 'Akash Sharma',
-    email: 'akash@code.org',
-    profilePic: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80',
-    bio: 'Competitive Programmer & Gym Freak',
-    timezone: 'Asia/Kolkata',
-    darkTheme: true,
-    currentStreak: 10,
-    longestStreak: 19,
-    xp: 2980,
-    level: 6,
-    rank: 'Platinum Grinder',
-    totalGoals: 110,
-    completedGoals: 98,
-    failedGoals: 8,
-    skippedGoals: 4,
-    consistencyRate: 89.0,
-    successRate: 89.0,
-    avgCompletionTimeMins: 50,
-    mostProductiveHour: '02:00 PM - 05:00 PM',
-    mostProductiveDay: 'Wednesday',
-    badgesUnlocked: ['b1', 'b3', 'b7'],
-    moodEmoji: '⚡',
-    onlineStatus: 'grinding',
-    lastSeen: 'Just now',
-    heatmapData: {},
-    todayPercentage: 75,
-    weeklyPercentage: 88,
-    monthlyPercentage: 90,
-    currentGoalCount: 4
-  },
-  {
-    id: 'user_4',
-    username: 'Priya Nair',
-    email: 'priya@ux.design',
-    profilePic: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80',
-    bio: 'Product Designer | UI/UX & Motion Crafter',
-    timezone: 'Asia/Kolkata',
-    darkTheme: true,
-    currentStreak: 12,
-    longestStreak: 16,
-    xp: 3100,
-    level: 6,
-    rank: 'Platinum Grinder',
-    totalGoals: 125,
-    completedGoals: 112,
-    failedGoals: 9,
-    skippedGoals: 4,
-    consistencyRate: 91.2,
-    successRate: 89.6,
-    avgCompletionTimeMins: 45,
-    mostProductiveHour: '10:00 AM - 01:00 PM',
-    mostProductiveDay: 'Thursday',
-    badgesUnlocked: ['b1', 'b3', 'b9'],
-    moodEmoji: '🎯',
-    onlineStatus: 'offline',
-    lastSeen: '1h ago',
-    heatmapData: {},
-    todayPercentage: 50,
-    weeklyPercentage: 85,
-    monthlyPercentage: 88,
-    currentGoalCount: 4
-  }
-];
+export const MOCK_GROUP_MEMBERS: GroupMember[] = [];
+export const INITIAL_GROUPS: Group[] = [];
 
-export const INITIAL_GROUPS: Group[] = [
-  {
-    id: 'grp_1',
-    name: 'Alpha Grind Syndicate',
-    description: 'Daily high-performance goal crushing group for devs, engineers & creators.',
-    icon: '⚡',
-    code: 'ALPHA-9921',
-    isPrivate: true,
-    ownerId: 'user_1',
-    adminIds: ['user_1', 'user_2'],
-    memberIds: ['user_1', 'user_2', 'user_3', 'user_4'],
-    memberData: {
-      'user_1': { joinedAt: '2026-06-01', xp: 0 },
-      'user_2': { joinedAt: '2026-06-01', xp: 0 },
-      'user_3': { joinedAt: '2026-06-05', xp: 0 },
-      'user_4': { joinedAt: '2026-06-10', xp: 0 }
-    },
-    createdAt: '2026-06-01'
-  },
-  {
-    id: 'grp_2',
-    name: '5 AM Club & Fitness',
-    description: 'Early morning cardio, gym sessions, and habit tracking squad.',
-    icon: '🌅',
-    code: 'FIT-5501',
-    isPrivate: false,
-    ownerId: 'user_3',
-    adminIds: ['user_3'],
-    memberIds: ['user_1', 'user_3'],
-    memberData: {
-      'user_1': { joinedAt: '2026-06-15', xp: 0 },
-      'user_3': { joinedAt: '2026-06-15', xp: 0 }
-    },
-    createdAt: '2026-06-15'
-  }
-];
+export const INITIAL_ACTIVITIES: ActivityFeedItem[] = [];
 
-export const INITIAL_ACTIVITIES: ActivityFeedItem[] = [
-  {
-    id: 'act_1',
-    userId: 'user_1',
-    userName: 'Hareesh',
-    userAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
-    type: 'goal_completed',
-    text: 'completed "Morning 5K Gym Run & Hydration"',
-    timestamp: '15 minutes ago',
-    reactions: [
-      { emoji: '🔥', count: 4, users: ['user_2', 'user_3', 'user_4'] },
-      { emoji: '💪', count: 2, users: ['user_2', 'user_3'] }
-    ],
-    comments: [
-      {
-        id: 'c1',
-        userId: 'user_2',
-        userName: 'Rahul Verma',
-        userAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80',
-        text: 'Insane pace man! Sub 25 min is tough! 🔥',
-        timestamp: '10m ago'
-      }
-    ]
-  },
-  {
-    id: 'act_2',
-    userId: 'user_2',
-    userName: 'Rahul Verma',
-    userAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80',
-    type: 'streak_reached',
-    text: 'reached a 15-day streak milestone! 🏆',
-    timestamp: '1 hour ago',
-    reactions: [
-      { emoji: '👏', count: 5, users: ['user_1', 'user_3', 'user_4'] },
-      { emoji: '⭐', count: 3, users: ['user_1', 'user_4'] }
-    ],
-    comments: []
-  },
-  {
-    id: 'act_3',
-    userId: 'user_3',
-    userName: 'Akash Sharma',
-    userAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80',
-    type: 'all_goals_done',
-    text: 'completed 100% of today\'s 4 goals!',
-    timestamp: '3 hours ago',
-    reactions: [
-      { emoji: '🔥', count: 3, users: ['user_1', 'user_2'] }
-    ],
-    comments: []
-  }
-];
+export const INITIAL_NOTIFICATIONS: NotificationItem[] = [];
 
-export const INITIAL_NOTIFICATIONS: NotificationItem[] = [
-  { id: 'n1', title: 'Nightly Goal Reminder', message: 'Time to set your goals for tomorrow! (10:00 PM)', type: 'reminder', timestamp: '10:00 PM', read: false },
-  { id: 'n2', title: 'Streak Milestone Unlocked!', message: 'You unlocked the "Consistency King" 14-day badge!', type: 'achievement', timestamp: '2 hours ago', read: false },
-  { id: 'n3', title: 'Rahul Verma reacted', message: 'Rahul reacted 🔥 to your Morning 5K Gym Run', type: 'social', timestamp: '15m ago', read: true }
-];
-
-export const INITIAL_ANNOUNCEMENTS: SystemAnnouncement[] = [
-  {
-    id: 'ann_1',
-    title: 'GrindTrack v2.4 Release: Spreadsheet Sync Engine!',
-    content: 'You can now link Google Sheets, Airtable, or JSON REST endpoints directly under Settings -> Database Sync.',
-    createdAt: '2026-07-24',
-    priority: 'important'
-  }
-];
+export const INITIAL_ANNOUNCEMENTS: SystemAnnouncement[] = [];
 
 export const INITIAL_SPREADSHEET_CONFIG: SpreadsheetConfig = {
   connected: false,

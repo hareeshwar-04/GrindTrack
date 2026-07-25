@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserProfile, Goal, ActivityFeedItem, GroupMember } from '../types';
 import { AIService, AIQuote } from '../services/aiService';
 import { calculateXP } from '../services/store';
@@ -43,6 +43,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [activeTab, setActiveTab] = useState<'today' | 'tomorrow' | 'week' | 'month'>('today');
   const [quote, setQuote] = useState<AIQuote>(AIService.getRandomQuote());
 
+  // Auto-rotate quotes every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => setQuote(AIService.getRandomQuote()), 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Greeting helper
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -66,14 +72,31 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const totalToday = todayGoals.length;
   const completionPct = totalToday > 0 ? Math.round((completedToday / totalToday) * 100) : 0;
 
+  // XP progress toward next level
+  const xpForCurrentLevel = (user.level - 1) * 500;
+  const xpForNextLevel = user.level * 500;
+  const xpProgress = Math.min(100, Math.round(((user.xp - xpForCurrentLevel) / (xpForNextLevel - xpForCurrentLevel)) * 100));
+  const xpRemaining = xpForNextLevel - user.xp;
+
   // Trigger celebration confetti on goal completion
   const handleCompleteGoal = (goalId: string, difficulty: Goal['difficulty']) => {
     onUpdateGoalStatus(goalId, 'completed');
-    confetti({
-      particleCount: 80,
-      spread: 70,
-      origin: { y: 0.6 }
-    });
+    
+    // Check if this completes ALL today goals
+    const willAllBeComplete = todayGoals.filter(g => g.id !== goalId).every(g => g.status === 'completed');
+    if (willAllBeComplete && todayGoals.length > 0) {
+      // Epic confetti burst for clearing the day!
+      const duration = 2000;
+      const end = Date.now() + duration;
+      const colors = ['#00E5FF', '#8B5CF6', '#10B981', '#F59E0B'];
+      (function frame() {
+        confetti({ particleCount: 4, angle: 60, spread: 55, origin: { x: 0 }, colors });
+        confetti({ particleCount: 4, angle: 120, spread: 55, origin: { x: 1 }, colors });
+        if (Date.now() < end) requestAnimationFrame(frame);
+      })();
+    } else {
+      confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+    }
   };
 
   const handleRefreshQuote = () => {
@@ -158,13 +181,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         
         {/* Streak Card */}
-        <div className="glass-card p-4 glass-card-interactive flex items-center gap-4">
-          <div className="p-3 rounded-2xl bg-[#F59E0B]/15 border border-[#F59E0B]/30 text-[#F59E0B]">
+        <div className={`glass-card p-4 glass-card-interactive flex items-center gap-4 ${user.currentStreak > 0 ? 'ring-1 ring-[#F59E0B]/30 shadow-[0_0_20px_rgba(245,158,11,0.15)]' : ''}`}>
+          <div className={`p-3 rounded-2xl bg-[#F59E0B]/15 border border-[#F59E0B]/30 text-[#F59E0B] ${user.currentStreak >= 7 ? 'animate-pulse' : ''}`}>
             <Flame className="w-6 h-6 fill-[#F59E0B]" />
           </div>
           <div>
             <span className="text-[11px] font-bold text-[#9CA3AF] uppercase tracking-wider">Current Streak</span>
-            <div className="font-display font-extrabold text-xl text-white">{user.currentStreak} Days</div>
+            <div className="font-display font-extrabold text-xl text-white">{user.currentStreak} Days {user.currentStreak >= 7 ? '🔥' : ''}</div>
             <span className="text-[10px] text-[#10B981] font-semibold">Best: {user.longestStreak} Days</span>
           </div>
         </div>
@@ -174,10 +197,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="p-3 rounded-2xl bg-[#00E5FF]/15 border border-[#00E5FF]/30 text-[#00E5FF]">
             <Zap className="w-6 h-6 fill-[#00E5FF]" />
           </div>
-          <div>
+          <div className="flex-1">
             <span className="text-[11px] font-bold text-[#9CA3AF] uppercase tracking-wider">Level & XP</span>
             <div className="font-display font-extrabold text-xl text-white">Lvl {user.level}</div>
-            <span className="text-[10px] text-[#00E5FF] font-semibold">{user.xp} Total XP</span>
+            <div className="w-full h-1.5 bg-[#1a1a1a] rounded-full overflow-hidden mt-1">
+              <div className="h-full bg-gradient-to-r from-[#00E5FF] to-[#8B5CF6] rounded-full transition-all duration-500" style={{ width: `${xpProgress}%` }} />
+            </div>
+            <span className="text-[10px] text-[#00E5FF] font-semibold">{xpRemaining} XP to Lvl {user.level + 1}</span>
           </div>
         </div>
 
