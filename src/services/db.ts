@@ -149,20 +149,32 @@ export class DatabaseService {
     const { data: squads, error: sqErr } = await supabase.from('squads').select('*').in('id', squadIds);
     if (sqErr || !squads) return [];
 
+    // Also fetch ALL members for these squads to populate memberIds
+    const { data: allMembersInSquads } = await supabase.from('squad_members').select('squad_id, user_id, joined_at, xp_earned').in('squad_id', squadIds);
+
     // Map to frontend Group interface
-    return squads.map(s => ({
-      id: s.id,
-      name: s.name,
-      description: s.description,
-      icon: s.icon,
-      code: s.code,
-      isPrivate: s.is_private,
-      ownerId: s.owner_id,
-      adminIds: [s.owner_id], // Simplified for now
-      memberIds: [], // Will populate in UI or via separate query
-      memberData: {},
-      createdAt: s.created_at
-    }));
+    return squads.map(s => {
+      const squadMembers = (allMembersInSquads || []).filter(m => m.squad_id === s.id);
+      
+      const memberDataMap: Record<string, any> = {};
+      squadMembers.forEach(m => {
+        memberDataMap[m.user_id] = { joinedAt: m.joined_at, xp: m.xp_earned };
+      });
+
+      return {
+        id: s.id,
+        name: s.name,
+        description: s.description,
+        icon: s.icon,
+        code: s.code,
+        isPrivate: s.is_private,
+        ownerId: s.owner_id,
+        adminIds: [s.owner_id],
+        memberIds: squadMembers.map(m => m.user_id),
+        memberData: memberDataMap,
+        createdAt: s.created_at
+      };
+    });
   }
 
   static async createSquad(userId: string, name: string, description: string, isPrivate: boolean) {
@@ -203,5 +215,88 @@ export class DatabaseService {
     }
     
     return squad;
+  }
+
+  // ─── CLAN SYSTEM (ADMIN & PREVIEWS) ───────────────────────
+  
+  static async previewSquad(code: string): Promise<{ id: string; name: string; description: string; icon: string; memberCount: number } | null> {
+    if (!supabase) return null;
+    
+    // 1. Find squad
+    const { data: squad, error } = await supabase.from('squads').select('id, name, description, icon').eq('code', code).single();
+    if (error || !squad) throw new Error('Invalid Code or Squad no longer exists');
+    
+    // 2. Count members
+    const { count, error: countErr } = await supabase.from('squad_members').select('*', { count: 'exact', head: true }).eq('squad_id', squad.id);
+    
+    return {
+      id: squad.id,
+      name: squad.name,
+      description: squad.description || '',
+      icon: squad.icon || '⚡',
+      memberCount: count || 0
+    };
+  }
+
+  static async getSquadMembers(squadId: string): Promise<GroupMember[]> {
+    if (!supabase) return [];
+    
+    // 1. Fetch junction rows
+    const { data: memberRows, error: memErr } = await supabase.from('squad_members').select('user_id, joined_at, xp_earned, role').eq('squad_id', squadId);
+    if (memErr || !memberRows || memberRows.length === 0) return [];
+    
+    const userIds = memberRows.map(m => m.user_id);
+    
+    // 2. Fetch profiles
+    const { data: profiles, error: profErr } = await supabase.from('profiles').select('*').in('id', userIds);
+    if (profErr || !profiles) return [];
+    
+    // 3. Merge data into GroupMember format
+    return profiles.map(p => {
+      const memData = memberRows.find(m => m.user_id === p.id);
+      return {
+        id: p.id,
+        username: p.username,
+        email: p.email,
+        profilePic: p.profile_pic,
+        bio: p.bio,
+        timezone: p.timezone,
+        darkTheme: p.dark_theme,
+        currentStreak: p.current_streak,
+        longestStreak: p.longest_streak,
+        xp: p.xp, // Global XP
+        level: p.level,
+        rank: p.rank,
+        totalGoals: p.total_goals,
+        completedGoals: p.completed_goals,
+        failedGoals: p.failed_goals,
+        skippedGoals: p.skipped_goals,
+        consistencyRate: p.consistency_rate,
+        successRate: p.success_rate,
+        avgCompletionTimeMins: p.avg_completion_time_mins,
+        mostProductiveHour: p.most_productive_hour,
+        mostProductiveDay: p.most_productive_day,
+        badgesUnlocked: p.badges_unlocked || [],
+        moodEmoji: p.mood_emoji,
+        onlineStatus: p.online_status,
+        lastSeen: p.last_seen,
+        heatmapData: p.heatmap_data || {},
+        
+        // Squad-specific injected data
+        todayPercentage: p.consistency_rate, // Temporary fallback until realtime sync is complete
+        weeklyPercentage: p.consistency_rate,
+        monthlyPercentage: p.success_rate,
+        currentGoalCount: p.total_goals,
+        squadRole: memData?.role || 'member',
+        squadXpEarned: memData?.xp_earned || 0,
+        squadJoinedAt: memData?.joined_at
+      } as GroupMember & { squadRole?: string, squadXpEarned?: number, squadJoinedAt?: string };
+    });
+  }
+
+  static async kickMember(squadId: string, memberId: string) {
+    if (!supabase) return;
+    const { error } = await supabase.from('squad_members').delete().match({ squad_id: squadId, user_id: memberId });
+    if (error) throw new Error('Failed to kick member. Ensure you have admin privileges.');
   }
 }

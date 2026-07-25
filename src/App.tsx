@@ -152,8 +152,21 @@ export function App() {
       currentGoalCount: todayGoals.length
     };
     
-    // Remove the simulated rivals; now we only show real members (just the user for now until they join a squad)
-    setGroupMembers([userAsMember]);
+    // Fetch real members for all squads
+    let allMembers: GroupMember[] = [userAsMember];
+    for (const group of fetchedGroups) {
+      const mems = await DatabaseService.getSquadMembers(group.id);
+      // Filter out ourselves so we don't duplicate (we use userAsMember for our own live data)
+      const others = mems.filter(m => m.id !== userId);
+      // Very basic deduplication (in case a member is in multiple squads)
+      others.forEach(o => {
+        if (!allMembers.find(existing => existing.id === o.id)) {
+          allMembers.push(o);
+        }
+      });
+    }
+    
+    setGroupMembers(allMembers);
     
     handleSetActiveView('dashboard');
     setVerifyReason(reason || 'signin');
@@ -769,14 +782,47 @@ export function App() {
               try {
                 const joinedSquad = await DatabaseService.joinSquadWithCode(user.id, code);
                 if (joinedSquad) {
-                  // Re-fetch squads to get the full squad data
+                  // Re-fetch squads and members
                   const allSquads = await DatabaseService.getUserSquads(user.id);
                   setGroups(allSquads);
+                  
+                  // Refetch members
+                  const mems = await DatabaseService.getSquadMembers(joinedSquad.id);
+                  setGroupMembers(prev => {
+                    const newArray = [...prev];
+                    mems.forEach(m => {
+                      if (!newArray.find(x => x.id === m.id)) newArray.push(m);
+                    });
+                    return newArray;
+                  });
+                  
                   showToast(`Joined squad successfully!`, 'success');
                 }
               } catch (e: any) {
                 console.error(e);
                 showToast(e.message || 'Failed to join squad', 'error');
+              }
+            }}
+            onPreviewGroup={async (code) => {
+              try {
+                return await DatabaseService.previewSquad(code);
+              } catch (e: any) {
+                showToast(e.message || 'Invalid Invite Code', 'error');
+                return null;
+              }
+            }}
+            onKickMember={async (memberId) => {
+              try {
+                const currentGroup = groups.find(g => g.memberIds.includes(memberId));
+                if (currentGroup) {
+                  await DatabaseService.kickMember(currentGroup.id, memberId);
+                  // Refresh squads to update memberIds
+                  const allSquads = await DatabaseService.getUserSquads(user.id);
+                  setGroups(allSquads);
+                  showToast('Member kicked successfully.', 'success');
+                }
+              } catch (e: any) {
+                showToast(e.message || 'Failed to kick member.', 'error');
               }
             }}
           />

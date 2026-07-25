@@ -12,6 +12,8 @@ interface GroupsViewProps {
   onSelectMemberProfile: (member: GroupMember) => void;
   onCreateGroup: (name: string, description: string, isPrivate: boolean) => void;
   onJoinGroup: (code: string) => void;
+  onPreviewGroup: (code: string) => Promise<{ id: string; name: string; description: string; icon: string; memberCount: number } | null>;
+  onKickMember?: (memberId: string) => void;
 }
 
 export const GroupsView: React.FC<GroupsViewProps> = ({
@@ -20,11 +22,15 @@ export const GroupsView: React.FC<GroupsViewProps> = ({
   currentUser,
   onSelectMemberProfile,
   onCreateGroup,
-  onJoinGroup
+  onJoinGroup,
+  onPreviewGroup,
+  onKickMember
 }) => {
   const [activeGroupIndex, setActiveGroupIndex] = useState(0);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
+  const [previewData, setPreviewData] = useState<{ id: string; name: string; description: string; icon: string; memberCount: number } | null>(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
 
   // Modal State
@@ -63,12 +69,28 @@ export const GroupsView: React.FC<GroupsViewProps> = ({
     setNewGroupDesc('');
   };
 
-  const handleJoinSubmit = (e: React.FormEvent) => {
+  const handleJoinSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!joinCodeInput.trim()) return;
-    onJoinGroup(joinCodeInput.trim().toUpperCase());
-    setShowJoinModal(false);
-    setJoinCodeInput('');
+    
+    if (previewData) {
+      // Step 2: Accept Invite
+      onJoinGroup(joinCodeInput.trim().toUpperCase());
+      setShowJoinModal(false);
+      setJoinCodeInput('');
+      setPreviewData(null);
+    } else {
+      // Step 1: Fetch Preview
+      try {
+        setIsPreviewLoading(true);
+        const data = await onPreviewGroup(joinCodeInput.trim().toUpperCase());
+        if (data) setPreviewData(data);
+      } catch (err) {
+        // App.tsx handles the toast error, so we can just leave this
+      } finally {
+        setIsPreviewLoading(false);
+      }
+    }
   };
 
   // Empty state — no groups
@@ -122,21 +144,55 @@ export const GroupsView: React.FC<GroupsViewProps> = ({
           </div>
         )}
 
-        {/* Join Modal */}
+        {/* Join Modal with Preview Step */}
         {showJoinModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-            <div className="bg-[#111111] border border-[#222] rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
-              <h3 className="font-display font-extrabold text-lg text-white">Join Squad with Invite Code</h3>
-              <form onSubmit={handleJoinSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-[#9CA3AF] mb-1">Enter Invite Code</label>
-                  <input type="text" placeholder="e.g. TITAN-5921" value={joinCodeInput} onChange={(e) => setJoinCodeInput(e.target.value)} className="form-input font-mono uppercase" required />
+            <div className="bg-[#111111] border border-[#222] rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl relative overflow-hidden">
+              
+              {!previewData ? (
+                <>
+                  <h3 className="font-display font-extrabold text-lg text-white">Join Squad with Invite Code</h3>
+                  <form onSubmit={handleJoinSubmit} className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold text-[#9CA3AF] mb-1">Enter Invite Code</label>
+                      <input type="text" placeholder="e.g. TITAN-5921" value={joinCodeInput} onChange={(e) => setJoinCodeInput(e.target.value)} className="form-input font-mono uppercase" required />
+                    </div>
+                    <div className="flex items-center justify-between pt-2">
+                      <button type="button" onClick={() => setShowJoinModal(false)} className="btn btn-secondary text-xs">Cancel</button>
+                      <button type="submit" className="btn btn-primary text-xs" disabled={isPreviewLoading}>
+                        {isPreviewLoading ? 'Searching...' : 'Search Squad'}
+                      </button>
+                    </div>
+                  </form>
+                </>
+              ) : (
+                <div className="space-y-6">
+                  <div className="text-center space-y-2">
+                    <div className="w-16 h-16 mx-auto rounded-xl bg-gradient-to-br from-[#00E5FF]/20 to-[#8B5CF6]/20 flex items-center justify-center border border-[#00E5FF]/30 shadow-[0_0_15px_rgba(0,229,255,0.2)]">
+                      <span className="text-3xl">{previewData.icon}</span>
+                    </div>
+                    <h3 className="font-display font-extrabold text-xl text-white pt-2">{previewData.name}</h3>
+                    <p className="text-sm text-[#9CA3AF]">{previewData.description || 'A highly active accountability squad.'}</p>
+                  </div>
+                  
+                  <div className="bg-white/5 rounded-xl p-4 border border-white/10 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Users className="w-5 h-5 text-[#8B5CF6]" />
+                      <span className="text-sm font-semibold text-white">Current Members</span>
+                    </div>
+                    <span className="bg-[#8B5CF6]/20 text-[#8B5CF6] px-3 py-1 rounded-full text-sm font-bold border border-[#8B5CF6]/30">
+                      {previewData.memberCount}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3 pt-2">
+                    <button type="button" onClick={() => setPreviewData(null)} className="btn btn-secondary text-xs flex-1">Back</button>
+                    <button type="button" onClick={handleJoinSubmit} className="btn btn-primary text-xs flex-1 bg-[#8B5CF6] hover:bg-[#7C3AED]">
+                      Accept Invite
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between pt-2">
-                  <button type="button" onClick={() => setShowJoinModal(false)} className="btn btn-secondary text-xs">Cancel</button>
-                  <button type="submit" className="btn btn-primary text-xs">Join Squad</button>
-                </div>
-              </form>
+              )}
             </div>
           </div>
         )}
@@ -285,9 +341,26 @@ export const GroupsView: React.FC<GroupsViewProps> = ({
                 </div>
               </div>
 
-              <span className="badge badge-accent text-[10px] font-mono">
-                Lvl {member.level}
-              </span>
+              <div className="flex flex-col items-end gap-1">
+                <span className="badge badge-accent text-[10px] font-mono">
+                  Lvl {member.level}
+                </span>
+                
+                {/* ADMIN CONTROLS: Kick Button */}
+                {currentGroup?.ownerId === currentUser.id && member.id !== currentUser.id && (
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (window.confirm(`Are you sure you want to kick ${member.username} from the squad?`)) {
+                        onKickMember?.(member.id);
+                      }
+                    }}
+                    className="bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white px-2 py-0.5 rounded text-[9px] font-bold uppercase transition-colors"
+                  >
+                    Kick
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Daily % Progress Bar */}
