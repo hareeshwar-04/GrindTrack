@@ -539,8 +539,11 @@ export class StoreService {
       if (g.targetDay === 'tomorrow') {
         return { ...g, targetDay: 'today' as const };
       }
-      if (g.targetDay === 'today' && g.status === 'pending') {
-        return { ...g, status: 'failed' as const, targetDay: 'history' as const };
+      if (g.targetDay === 'today') {
+        if (g.status === 'pending') {
+          return { ...g, status: 'failed' as const, targetDay: 'history' as const };
+        }
+        return { ...g, targetDay: 'history' as const };
       }
       return g;
     });

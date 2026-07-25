@@ -257,6 +257,9 @@ export function App() {
     const updatedActs = [newAct, ...activities];
     setActivities(updatedActs);
     StoreService.saveActivities(updatedActs, user.email);
+
+    // Update total goals stat
+    handleSaveUser({ totalGoals: user.totalGoals + 1 });
   };
 
   const handleUpdateGoalStatus = (goalId: string, status: TaskStatus) => {
@@ -271,7 +274,7 @@ export function App() {
     });
     handleUpdateGoals(updatedGoals);
 
-    if (status === 'completed') {
+    if (status === 'completed' && targetGoal.status !== 'completed') {
       const todayGoals = updatedGoals.filter(g => g.targetDay === 'today');
       const allTodayCompleted = todayGoals.length > 0 && todayGoals.every(g => g.status === 'completed');
 
@@ -297,8 +300,8 @@ export function App() {
       newHeatmap[todayKey] = (newHeatmap[todayKey] || 0) + 1;
 
       // Success rate
-      const newTotalGoals = user.totalGoals + 1;
-      const newSuccessRate = Math.round((newCompletedGoals / newTotalGoals) * 1000) / 10;
+      const newTotalGoals = user.totalGoals;
+      const newSuccessRate = newTotalGoals > 0 ? Math.round((newCompletedGoals / newTotalGoals) * 1000) / 10 : 100;
 
       // Rank progression
       let newRank = user.rank;
@@ -314,7 +317,6 @@ export function App() {
         level: newLevel,
         rank: newRank,
         completedGoals: newCompletedGoals,
-        totalGoals: newTotalGoals,
         currentStreak: newStreak,
         longestStreak: newLongestStreak,
         successRate: newSuccessRate,
@@ -332,7 +334,7 @@ export function App() {
 
         // Streak badges
         if (b.id === 'b8') progress = newStreak; // 14-day streak
-        if (b.id === 'b9' && allTodayCompleted) progress = progress + 1; // Perfect Week (consecutive 100% days)
+        if (b.id === 'b9' && allTodayCompleted) progress = progress + 1; // Perfect Week
         if (b.id === 'b10' && allTodayCompleted) progress = progress + 1; // Perfect Month
 
         // Category badges
@@ -388,6 +390,44 @@ export function App() {
       const updatedActs = [act, ...activities];
       setActivities(updatedActs);
       StoreService.saveActivities(updatedActs, user.email);
+    } else if (status === 'pending' && targetGoal.status === 'completed') {
+      // DEDUCT XP if they un-complete a goal to prevent infinite XP exploit
+      const taskXP = calculateXP(targetGoal.difficulty);
+      const newXP = Math.max(0, user.xp - taskXP);
+      const newLevel = Math.floor(newXP / 500) + 1;
+      const newCompletedGoals = Math.max(0, user.completedGoals - 1);
+      const newSuccessRate = user.totalGoals > 0 ? Math.round((newCompletedGoals / user.totalGoals) * 1000) / 10 : 100;
+      
+      // We do not revert the 300 daily bonus to keep it simple, but we do deduct task XP.
+      // We also don't revert the heatmap/streaks to avoid complicated rollbacks.
+      
+      handleSaveUser({
+        xp: newXP,
+        level: newLevel,
+        completedGoals: newCompletedGoals,
+        successRate: newSuccessRate
+      });
+      
+      // Update per-group XP
+      if (taskXP > 0 && groups.length > 0) {
+        const updatedGroups = groups.map(g => {
+          if (g.memberIds.includes(user.id) && g.memberData?.[user.id]) {
+            return {
+              ...g,
+              memberData: {
+                ...g.memberData,
+                [user.id]: {
+                  ...g.memberData[user.id],
+                  xp: Math.max(0, (g.memberData[user.id]?.xp || 0) - taskXP)
+                }
+              }
+            };
+          }
+          return g;
+        });
+        setGroups(updatedGroups);
+        StoreService.saveGroups(updatedGroups, user.email);
+      }
     }
   };
 
@@ -409,6 +449,9 @@ export function App() {
   const handleDeleteGoal = (goalId: string) => {
     const updatedGoals = goals.filter(g => g.id !== goalId);
     handleUpdateGoals(updatedGoals);
+    
+    // Decrement total goals stat
+    handleSaveUser({ totalGoals: Math.max(0, user.totalGoals - 1) });
   };
 
   const handleRollOverGoal = (goalId: string) => {
