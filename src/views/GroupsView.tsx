@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Group, GroupMember, UserProfile } from '../types';
+import { DatabaseService } from '../services/db';
 import { 
   Users, Plus, Key, Shield, Crown, Flame, Zap, Award, 
   ExternalLink, Copy, Check, Settings, UserMinus, UserCheck, Sparkles 
@@ -38,6 +39,44 @@ export const GroupsView: React.FC<GroupsViewProps> = ({
   const [newGroupDesc, setNewGroupDesc] = useState('');
   const [newGroupPrivate, setNewGroupPrivate] = useState(true);
   const [joinCodeInput, setJoinCodeInput] = useState('');
+  
+  // Public Search State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  const handleSearchPublicGroups = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    setIsSearching(true);
+    try {
+      const results = await DatabaseService.searchPublicSquads(searchQuery);
+      setSearchResults(results);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+  
+  // Auto-join logic
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const joinCode = urlParams.get('join');
+    if (joinCode) {
+      setJoinCodeInput(joinCode.toUpperCase());
+      setShowJoinModal(true);
+      // Clean up URL without reloading
+      window.history.replaceState({}, document.title, window.location.pathname);
+      
+      // Auto-trigger preview
+      setIsPreviewLoading(true);
+      onPreviewGroup(joinCode.toUpperCase())
+        .then(data => { if (data) setPreviewData(data); })
+        .catch(err => console.error(err))
+        .finally(() => setIsPreviewLoading(false));
+    }
+  }, [onPreviewGroup]);
 
   const currentGroup = groups[activeGroupIndex] || groups[0];
 
@@ -411,6 +450,58 @@ export const GroupsView: React.FC<GroupsViewProps> = ({
 
           </div>
         ))}
+      </div>
+
+      {/* Public Squad Discover Section */}
+      <div className="mt-8 pt-8 border-t border-[#222]">
+        <h3 className="font-display font-extrabold text-lg text-white mb-4 flex items-center gap-2">
+          <Sparkles className="w-5 h-5 text-[#00E5FF]" /> Discover Public Squads
+        </h3>
+        
+        <form onSubmit={handleSearchPublicGroups} className="flex items-center gap-2 mb-6">
+          <input 
+            type="text" 
+            placeholder="Search by squad name..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="form-input flex-1"
+          />
+          <button type="submit" className="btn btn-primary" disabled={isSearching}>
+            {isSearching ? 'Searching...' : 'Search'}
+          </button>
+        </form>
+
+        {searchResults.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {searchResults.map(squad => (
+              <div key={squad.id} className="glass-card p-4 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-[#00E5FF]/10 text-[#00E5FF] flex items-center justify-center text-lg border border-[#00E5FF]/20">
+                    {squad.icon}
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-white">{squad.name}</h4>
+                    <p className="text-[10px] text-[#9CA3AF] line-clamp-1">{squad.description}</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => {
+                    setJoinCodeInput(squad.code);
+                    setShowJoinModal(true);
+                    
+                    setIsPreviewLoading(true);
+                    onPreviewGroup(squad.code)
+                      .then(data => { if (data) setPreviewData(data); })
+                      .finally(() => setIsPreviewLoading(false));
+                  }}
+                  className="btn btn-secondary text-[10px] py-1.5 px-3 shrink-0"
+                >
+                  Join
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Modal: Create Squad */}

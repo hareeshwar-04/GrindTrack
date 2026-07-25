@@ -238,6 +238,21 @@ export class DatabaseService {
     };
   }
 
+  static async searchPublicSquads(query: string) {
+    if (!supabase) return [];
+    
+    let dbQuery = supabase.from('squads').select('id, name, description, icon, code').eq('is_private', false);
+    
+    if (query.trim()) {
+      dbQuery = dbQuery.ilike('name', `%${query.trim()}%`);
+    }
+    
+    const { data, error } = await dbQuery.limit(10);
+    if (error || !data) return [];
+    
+    return data;
+  }
+
   static async getSquadMembers(squadId: string): Promise<GroupMember[]> {
     if (!supabase) return [];
     

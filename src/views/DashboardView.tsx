@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserProfile, Goal, ActivityFeedItem, GroupMember } from '../types';
+import { UserProfile, Goal, ActivityFeedItem, GroupMember, Group } from '../types';
 import { AIService, AIQuote } from '../services/aiService';
 import { calculateXP } from '../services/store';
 import confetti from 'canvas-confetti';
@@ -15,6 +15,7 @@ interface DashboardViewProps {
   onUpdateGoalStatus: (goalId: string, status: Goal['status']) => void;
   onToggleSubtask: (goalId: string, subtaskId: string) => void;
   activities: ActivityFeedItem[];
+  groups: Group[];
   groupMembers: GroupMember[];
   onOpenNewGoal: () => void;
   onOpenCSVImport?: () => void;
@@ -31,6 +32,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onUpdateGoalStatus,
   onToggleSubtask,
   activities,
+  groups,
   groupMembers,
   onOpenNewGoal,
   onOpenCSVImport,
@@ -42,6 +44,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'today' | 'tomorrow' | 'week' | 'month'>('today');
   const [quote, setQuote] = useState<AIQuote>(AIService.getRandomQuote());
+  const [selectedSquadId, setSelectedSquadId] = useState<string>('all');
 
   // Auto-rotate quotes every 30 seconds
   useEffect(() => {
@@ -465,34 +468,60 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         {/* Side Column: Group Leaderboard Preview + Activity Feed */}
         <div className="space-y-6">
           
-          {/* Group Leaderboard Preview */}
+          {/* Global/Squad Leaderboard */}
           <div className="glass-card p-5 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-sm text-white flex items-center gap-2">
-                <Trophy className="w-4 h-4 text-[#F59E0B]" /> Group Leaderboard
+              <h3 className="font-display font-extrabold text-white flex items-center gap-2">
+                <Trophy className="w-4 h-4 text-[#F59E0B]" /> Live Leaderboard
               </h3>
-              <button
-                onClick={() => onNavigateView('leaderboard')}
-                className="text-xs text-[#00E5FF] hover:underline font-semibold flex items-center gap-0.5"
+              
+              <select 
+                value={selectedSquadId} 
+                onChange={(e) => setSelectedSquadId(e.target.value)}
+                className="bg-[#111111] text-xs text-white border border-[#222] rounded-lg px-2 py-1 outline-none focus:border-[#8B5CF6] transition-colors"
               >
-                Full List <ChevronRight className="w-3.5 h-3.5" />
-              </button>
+                <option value="all">Global (All Squads)</option>
+                {[...groups].sort((a, b) => a.name.localeCompare(b.name)).map(g => (
+                  <option key={g.id} value={g.id}>{g.name}</option>
+                ))}
+              </select>
             </div>
-
             <div className="space-y-2">
-              {groupMembers.slice(0, 3).map((m, idx) => (
-                <div key={m.id} className="flex items-center justify-between p-2.5 rounded-xl bg-[#171717] border border-[#262626]">
-                  <div className="flex items-center gap-3">
-                    <span className="font-extrabold text-xs text-[#F59E0B]">#{idx + 1}</span>
-                    <img src={m.profilePic} alt={m.username} className="w-8 h-8 rounded-lg object-cover" />
-                    <div>
-                      <h5 className="font-bold text-xs text-white">{m.username}</h5>
-                      <span className="text-[10px] text-[#9CA3AF]">{m.currentStreak}d streak • {m.todayPercentage}% today</span>
+              {[...groupMembers]
+                .filter(m => selectedSquadId === 'all' || groups.find(g => g.id === selectedSquadId)?.memberIds.includes(m.id))
+                .sort((a, b) => b.xp - a.xp)
+                .slice(0, 10)
+                .map((member, idx) => (
+                <div key={member.id} className="flex items-center gap-3 p-3 rounded-xl bg-[#1a1a1a] border border-[#222]">
+                  <div className={`w-6 h-6 rounded flex items-center justify-center font-bold text-[10px] ${
+                    idx === 0 ? 'bg-[#F59E0B]/20 text-[#F59E0B]' :
+                    idx === 1 ? 'bg-[#9CA3AF]/20 text-[#9CA3AF]' :
+                    idx === 2 ? 'bg-[#D97706]/20 text-[#D97706]' : 'text-[#6B7280]'
+                  }`}>
+                    #{idx + 1}
+                  </div>
+                  <img src={member.profilePic} alt={member.username} className="w-8 h-8 rounded-full border border-[#333]" />
+                  <div className="flex-1">
+                    <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                      {member.username} <span>{member.moodEmoji}</span>
+                    </div>
+                    <div className="text-[10px] text-[#9CA3AF]">
+                      Lvl {member.level} • {member.totalGoals} Goals
                     </div>
                   </div>
-                  <span className="badge badge-primary text-[10px] font-mono">{m.xp} XP</span>
+                  <div className="text-right">
+                    <div className="text-xs font-bold text-[#8B5CF6]">{member.xp} XP</div>
+                    <div className="text-[10px] text-[#10B981]">{member.todayPercentage}% Today</div>
+                  </div>
                 </div>
               ))}
+              
+              {groups.length === 0 && selectedSquadId === 'all' && groupMembers.length <= 1 && (
+                <div className="text-center p-4 border border-dashed border-[#333] rounded-xl bg-[#111111]/50">
+                  <p className="text-xs text-[#9CA3AF]">You are not in any squads yet!</p>
+                  <button onClick={() => onNavigateView('groups')} className="btn btn-secondary text-[10px] mt-2 py-1 px-3">Join a Squad</button>
+                </div>
+              )}
             </div>
           </div>
 

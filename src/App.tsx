@@ -168,7 +168,16 @@ export function App() {
     
     setGroupMembers(allMembers);
     
-    handleSetActiveView('dashboard');
+    // Auto-join logic
+    const urlParams = new URLSearchParams(window.location.search);
+    const joinCode = urlParams.get('join');
+    
+    if (joinCode) {
+      handleSetActiveView('groups');
+    } else {
+      handleSetActiveView('dashboard');
+    }
+    
     setVerifyReason(reason || 'signin');
     setAuthState(prev => prev === 'authenticated' ? 'authenticated' : 'verified');
   }, []);
@@ -730,6 +739,7 @@ export function App() {
               setIsGoalModalOpen(true);
             }}
             activities={activities}
+            groups={groups}
             groupMembers={groupMembers}
             onOpenNewGoal={() => {
               setEditingGoal(null);
