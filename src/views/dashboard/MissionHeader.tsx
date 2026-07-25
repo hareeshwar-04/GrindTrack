@@ -58,19 +58,6 @@ export const MissionHeader: React.FC<MissionHeaderProps> = ({ user }) => {
           </div>
         </div>
 
-        <div className="h-8 w-px bg-[#333] mx-2 hidden md:block" />
-
-        {/* Mini Actions */}
-        <div className="flex items-center gap-3 hidden md:flex">
-          <button className="text-[#9CA3AF] hover:text-white transition-colors">
-            <Search className="w-5 h-5" />
-          </button>
-          <button className="text-[#9CA3AF] hover:text-white transition-colors relative">
-            <Bell className="w-5 h-5" />
-            <span className="absolute -top-1 -right-1 w-2 h-2 bg-[#EF4444] rounded-full" />
-          </button>
-          <img src={user.profilePic} alt="Profile" className="w-8 h-8 rounded-full border border-[#333]" />
-        </div>
       </div>
     </div>
   );

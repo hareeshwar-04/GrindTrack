@@ -9,6 +9,7 @@ interface NavbarProps {
   notifications: NotificationItem[];
   onOpenNewGoal: () => void;
   onOpenSearch: () => void;
+  onOpenImportGoals?: () => void;
   canGoBack?: boolean;
   onGoBack?: () => void;
   onOpenAuth?: () => void;
@@ -25,10 +26,13 @@ export const Navbar: React.FC<NavbarProps> = ({
   canGoBack,
   onGoBack,
   onOpenAuth,
+  onOpenImportGoals,
   onSignOut
 }) => {
   const [showNotifMenu, setShowNotifMenu] = useState(false);
+  const [showNewMenu, setShowNewMenu] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
+  const newMenuRef = useRef<HTMLDivElement>(null);
   const unreadNotifs = notifications.filter(n => !n.read).length;
 
   // Close notification dropdown on outside click
@@ -42,6 +46,18 @@ export const Navbar: React.FC<NavbarProps> = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showNotifMenu]);
+
+  // Close new dropdown on outside click
+  useEffect(() => {
+    if (!showNewMenu) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (newMenuRef.current && !newMenuRef.current.contains(e.target as Node)) {
+        setShowNewMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showNewMenu]);
 
   const mainNavItems = [
     { id: 'dashboard', label: 'Dashboard' },
@@ -136,14 +152,47 @@ export const Navbar: React.FC<NavbarProps> = ({
             <kbd className="hidden md:inline px-1.5 py-0.5 text-[9px] font-mono bg-[#1a1a1a] rounded border border-[#333] text-[#6B7280]">⌘K</kbd>
           </button>
 
-          {/* Quick Add Goal Button */}
-          <button 
-            onClick={onOpenNewGoal}
-            className="btn btn-primary text-xs py-1.5 px-4 hidden sm:flex items-center gap-1.5 shadow-[0_0_15px_rgba(0,229,255,0.2)] hover:shadow-[0_0_20px_rgba(0,229,255,0.4)]"
-          >
-            <Plus className="w-3.5 h-3.5 stroke-[3]" />
-            <span className="font-bold">New</span>
-          </button>
+          {/* Unified New Button Dropdown */}
+          <div className="relative hidden sm:block" ref={newMenuRef}>
+            <button 
+              onClick={() => setShowNewMenu(!showNewMenu)}
+              className="btn btn-primary text-xs py-1.5 px-3 flex items-center gap-1.5 shadow-[0_0_15px_rgba(0,229,255,0.2)] hover:shadow-[0_0_20px_rgba(0,229,255,0.4)]"
+            >
+              <Plus className="w-3.5 h-3.5 stroke-[3]" />
+              <span className="font-bold pr-1">New</span>
+              <ChevronDown className={`w-3 h-3 transition-transform ${showNewMenu ? 'rotate-180' : ''}`} />
+            </button>
+
+            {showNewMenu && (
+              <div className="absolute right-0 mt-2 w-48 bg-[#111111] border border-[#222] rounded-xl shadow-2xl p-2 z-50 animate-fade-in flex flex-col gap-1">
+                <button 
+                  onClick={() => { setShowNewMenu(false); onOpenNewGoal(); }}
+                  className="w-full text-left px-3 py-2 text-xs text-white hover:bg-[#00E5FF]/10 hover:text-[#00E5FF] rounded-lg transition-colors font-bold"
+                >
+                  Create Goal
+                </button>
+                <button 
+                  onClick={() => { setShowNewMenu(false); setActiveView('groups'); }}
+                  className="w-full text-left px-3 py-2 text-xs text-white hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] rounded-lg transition-colors font-bold"
+                >
+                  Create Group
+                </button>
+                <button 
+                  onClick={() => { setShowNewMenu(false); /* Future feature placeholder */ }}
+                  className="w-full text-left px-3 py-2 text-xs text-white hover:bg-[#10B981]/10 hover:text-[#10B981] rounded-lg transition-colors font-bold"
+                >
+                  Create Challenge
+                </button>
+                <div className="h-px bg-[#222] my-1" />
+                <button 
+                  onClick={() => { setShowNewMenu(false); onOpenImportGoals?.(); }}
+                  className="w-full text-left px-3 py-2 text-xs text-[#9CA3AF] hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                >
+                  Import Goals (CSV)
+                </button>
+              </div>
+            )}
+          </div>
 
           {/* Notifications */}
           <div className="relative" ref={notifRef}>

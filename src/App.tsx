@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Navbar } from './components/Navbar';
 import { MobileNav } from './components/MobileNav';
-import { MidnightBanner } from './components/MidnightBanner';
 import { SessionCompleteModal } from './components/SessionCompleteModal';
 import { GoalWizardModal } from './components/GoalWizardModal';
 import { CSVImportModal } from './components/CSVImportModal';
@@ -695,6 +694,7 @@ export function App() {
         notifications={notifications}
         onOpenNewGoal={() => setIsGoalModalOpen(true)}
         onOpenSearch={() => setIsSearchModalOpen(true)}
+        onOpenImportGoals={() => setIsCSVModalOpen(true)}
         onOpenAuth={() => setIsAuthModalOpen(true)}
         onSignOut={handleSignOut}
       />
@@ -705,10 +705,6 @@ export function App() {
             <div className="w-8 h-8 border-2 border-[#00E5FF] border-t-transparent rounded-full animate-spin" />
           </div>
         }>
-        <MidnightBanner
-          timezone={user.timezone}
-          onTriggerRollover={handleTriggerRollover}
-        />
 
         {activeView === 'dashboard' && (
           <MissionDashboardView
