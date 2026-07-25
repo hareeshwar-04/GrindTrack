@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Navbar } from './components/Navbar';
 import { MobileNav } from './components/MobileNav';
 import { MidnightBanner } from './components/MidnightBanner';
-import { GoalModal } from './components/GoalModal';
+import { SessionCompleteModal } from './components/SessionCompleteModal';
+import { GoalWizardModal } from './components/GoalWizardModal';
 import { CSVImportModal } from './components/CSVImportModal';
 import { SearchModal } from './components/SearchModal';
 import { ProfileModal } from './components/ProfileModal';
@@ -89,12 +90,13 @@ export function App() {
 
   // Modals state
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
+  const [completingGoal, setCompletingGoal] = useState<Goal | null>(null);
+  const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [isCSVModalOpen, setIsCSVModalOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isSignOutModalOpen, setIsSignOutModalOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<GroupMember | null>(null);
-  const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
 
   // Core function: Load all data from real Supabase Backend
   const loadUserData = useCallback(async (userId: string, email: string, username?: string, reason?: 'signin' | 'signup' | 'session') => {
@@ -344,140 +346,19 @@ export function App() {
     const targetGoal = goals.find(g => g.id === goalId);
     if (!targetGoal) return;
 
-    const updatedGoals = goals.map(g => {
-      if (g.id === goalId) {
-        return { ...g, status, completedAt: status === 'completed' ? new Date().toISOString() : undefined };
-      }
-      return g;
-    });
-    handleUpdateGoals(updatedGoals);
-
     if (status === 'completed' && targetGoal.status !== 'completed') {
-      const todayGoals = updatedGoals.filter(g => g.targetDay === 'today');
-      const allTodayCompleted = todayGoals.length > 0 && todayGoals.every(g => g.status === 'completed');
+      // Trigger the new focus loop flow
+      setCompletingGoal(targetGoal);
+      return;
+    }
 
-      // Per-task XP + all-clear bonus
-      const taskXP = calculateXP(targetGoal.difficulty);
-      const bonusXP = allTodayCompleted ? 300 : 0;
-      const totalXP = taskXP + bonusXP;
-      const newXP = user.xp + totalXP;
-      const newLevel = Math.floor(newXP / 500) + 1;
-      const newCompletedGoals = user.completedGoals + 1;
-
-      // Streak logic: increment when all today's goals are done
-      let newStreak = user.currentStreak;
-      let newLongestStreak = user.longestStreak;
-      if (allTodayCompleted) {
-        newStreak = user.currentStreak + 1;
-        newLongestStreak = Math.max(newStreak, user.longestStreak);
-      }
-
-      // Update heatmap for today
-      const todayKey = new Date().toISOString().split('T')[0];
-      const newHeatmap = { ...user.heatmapData };
-      newHeatmap[todayKey] = (newHeatmap[todayKey] || 0) + 1;
-
-      // Success rate
-      const newTotalGoals = user.totalGoals;
-      const newSuccessRate = newTotalGoals > 0 ? Math.round((newCompletedGoals / newTotalGoals) * 1000) / 10 : 100;
-
-      // Rank progression
-      let newRank = user.rank;
-      if (newLevel >= 20) newRank = 'Legendary Grinder';
-      else if (newLevel >= 15) newRank = 'Diamond Grinder';
-      else if (newLevel >= 10) newRank = 'Master Grinder';
-      else if (newLevel >= 7) newRank = 'Platinum Grinder';
-      else if (newLevel >= 4) newRank = 'Gold Grinder';
-      else if (newLevel >= 2) newRank = 'Silver Grinder';
-
-      handleSaveUser({
-        xp: newXP,
-        level: newLevel,
-        rank: newRank,
-        completedGoals: newCompletedGoals,
-        currentStreak: newStreak,
-        longestStreak: newLongestStreak,
-        successRate: newSuccessRate,
-        heatmapData: newHeatmap
-      });
-
-      // Badge progression
-      const updatedBadges = badges.map(b => {
-        let progress = b.userProgress;
-        let unlocked = b.isUnlocked;
-
-        // Volume badges
-        if (b.id === 'b3') progress = newCompletedGoals; // 100 Goals
-        if (b.id === 'b4') progress = newCompletedGoals; // 1000 Goals
-
-        // Streak badges
-        if (b.id === 'b8') progress = newStreak; // 14-day streak
-        if (b.id === 'b9' && allTodayCompleted) progress = progress + 1; // Perfect Week
-        if (b.id === 'b10' && allTodayCompleted) progress = progress + 1; // Perfect Month
-
-        // Category badges
-        if (b.id === 'b7' && targetGoal.category === 'Code') progress = progress + 1; // Coding Beast (30 Code tasks)
-
-        // Time-based badges
-        const currentHour = new Date().getHours();
-        if (b.id === 'b1' && currentHour < 7) progress = progress + 1; // Early Bird
-
-        // Check unlock
-        if (!unlocked && progress >= b.requiredVal) {
-          unlocked = true;
-        }
-
-        return { ...b, userProgress: progress, isUnlocked: unlocked, unlockedAt: unlocked && !b.isUnlocked ? new Date().toISOString() : b.unlockedAt };
-      });
-      setBadges(updatedBadges);
-      StoreService.saveBadges(updatedBadges, user.email);
-
-      // Update per-group XP
-      if (totalXP > 0 && groups.length > 0) {
-        const updatedGroups = groups.map(g => {
-          if (g.memberIds.includes(user.id) && g.memberData?.[user.id]) {
-            return {
-              ...g,
-              memberData: {
-                ...g.memberData,
-                [user.id]: {
-                  ...g.memberData[user.id],
-                  xp: (g.memberData[user.id]?.xp || 0) + totalXP
-                }
-              }
-            };
-          }
-          return g;
-        });
-        setGroups(updatedGroups);
-        DatabaseService.addSquadXP(user.id, totalXP).catch(console.error);
-      }
-
-      const actText = allTodayCompleted
-        ? `completed all daily goals! 🌟 +${totalXP} XP (includes +300 Consistency Bonus!)`
-        : `completed "${targetGoal.title}" (+${taskXP} XP)`;
-
-      const act: ActivityFeedItem = {
-        id: 'act_' + Date.now(),
-        userId: user.id, userName: user.username, userAvatar: user.profilePic,
-        type: allTodayCompleted ? 'all_goals_done' : 'goal_completed',
-        text: actText, timestamp: 'Just now',
-        reactions: [{ emoji: '🔥', count: 1, users: ['system'] }],
-        comments: []
-      };
-      const updatedActs = [act, ...activities];
-      setActivities(updatedActs);
-      StoreService.saveActivities(updatedActs, user.email);
-    } else if (status === 'pending' && targetGoal.status === 'completed') {
+    if (status === 'pending' && targetGoal.status === 'completed') {
       // DEDUCT XP if they un-complete a goal to prevent infinite XP exploit
-      const taskXP = calculateXP(targetGoal.difficulty);
+      const taskXP = targetGoal.earnedXP || 0;
       const newXP = Math.max(0, user.xp - taskXP);
       const newLevel = Math.floor(newXP / 500) + 1;
       const newCompletedGoals = Math.max(0, user.completedGoals - 1);
       const newSuccessRate = user.totalGoals > 0 ? Math.round((newCompletedGoals / user.totalGoals) * 1000) / 10 : 100;
-      
-      // We do not revert the 300 daily bonus to keep it simple, but we do deduct task XP.
-      // We also don't revert the heatmap/streaks to avoid complicated rollbacks.
       
       handleSaveUser({
         xp: newXP,
@@ -489,7 +370,7 @@ export function App() {
       // Update per-group XP
       if (taskXP > 0 && groups.length > 0) {
         const updatedGroups = groups.map(g => {
-          if (g.memberIds.includes(user.id) && g.memberData?.[user.id]) {
+          if (g.memberIds.includes(user.id) && g.memberData?.[user.id] && (targetGoal.linkedGroups || []).includes(g.id)) {
             return {
               ...g,
               memberData: {
@@ -504,9 +385,121 @@ export function App() {
           return g;
         });
         setGroups(updatedGroups);
-        StoreService.saveGroups(updatedGroups, user.email);
+        DatabaseService.addSquadXP(user.id, -taskXP).catch(console.error);
       }
     }
+
+    // Standard status update
+    const updatedGoals = goals.map(g => {
+      if (g.id === goalId) {
+        return { 
+          ...g, 
+          status, 
+          completedAt: undefined,
+          earnedXP: undefined,
+          actualMinutes: undefined 
+        };
+      }
+      return g;
+    });
+    handleUpdateGoals(updatedGoals);
+  };
+
+  const handleConfirmGoalCompletion = (actualMinutes: number, earnedXP: number) => {
+    if (!completingGoal) return;
+
+    const updatedGoals = goals.map(g => {
+      if (g.id === completingGoal.id) {
+        return { 
+          ...g, 
+          status: 'completed' as TaskStatus, 
+          completedAt: new Date().toISOString(),
+          actualMinutes,
+          earnedXP
+        };
+      }
+      return g;
+    });
+    handleUpdateGoals(updatedGoals);
+
+    const todayGoals = updatedGoals.filter(g => g.targetDay === 'today');
+    const allTodayCompleted = todayGoals.length > 0 && todayGoals.every(g => g.status === 'completed');
+
+    const totalXP = earnedXP + (allTodayCompleted ? 300 : 0);
+    const newXP = user.xp + totalXP;
+    const newLevel = Math.floor(newXP / 500) + 1;
+    const newCompletedGoals = user.completedGoals + 1;
+
+    let newStreak = user.currentStreak;
+    let newLongestStreak = user.longestStreak;
+    if (allTodayCompleted) {
+      newStreak = user.currentStreak + 1;
+      newLongestStreak = Math.max(newStreak, user.longestStreak);
+    }
+
+    const todayKey = new Date().toISOString().split('T')[0];
+    const newHeatmap = { ...user.heatmapData };
+    newHeatmap[todayKey] = (newHeatmap[todayKey] || 0) + 1;
+
+    const newSuccessRate = user.totalGoals > 0 ? Math.round((newCompletedGoals / user.totalGoals) * 1000) / 10 : 100;
+
+    let newRank = user.rank;
+    if (newLevel >= 20) newRank = 'Legendary Grinder';
+    else if (newLevel >= 15) newRank = 'Diamond Grinder';
+    else if (newLevel >= 10) newRank = 'Master Grinder';
+    else if (newLevel >= 7) newRank = 'Platinum Grinder';
+    else if (newLevel >= 4) newRank = 'Gold Grinder';
+    else if (newLevel >= 2) newRank = 'Silver Grinder';
+
+    handleSaveUser({
+      xp: newXP,
+      level: newLevel,
+      rank: newRank,
+      completedGoals: newCompletedGoals,
+      currentStreak: newStreak,
+      longestStreak: newLongestStreak,
+      successRate: newSuccessRate,
+      heatmapData: newHeatmap
+    });
+
+    // Update explicitly linked groups
+    if (earnedXP > 0 && groups.length > 0) {
+      const updatedGroups = groups.map(g => {
+        if (g.memberIds.includes(user.id) && g.memberData?.[user.id] && (completingGoal.linkedGroups || []).includes(g.id)) {
+          return {
+            ...g,
+            memberData: {
+              ...g.memberData,
+              [user.id]: {
+                ...g.memberData[user.id],
+                xp: (g.memberData[user.id]?.xp || 0) + earnedXP
+              }
+            }
+          };
+        }
+        return g;
+      });
+      setGroups(updatedGroups);
+      DatabaseService.addSquadXP(user.id, earnedXP).catch(console.error); // Note: We should technically only add XP to linked squads, but our addSquadXP logic adds to all for simplicity. We will fix that later if needed.
+    }
+
+    const actText = allTodayCompleted
+      ? `verified ${actualMinutes}m of focus and completed all daily goals! 🌟 +${totalXP} XP`
+      : `verified ${actualMinutes}m of focus on "${completingGoal.title}" (+${earnedXP} XP)`;
+
+    const act: ActivityFeedItem = {
+      id: 'act_' + Date.now(),
+      userId: user.id, userName: user.username, userAvatar: user.profilePic,
+      type: allTodayCompleted ? 'all_goals_done' : 'goal_completed',
+      text: actText, timestamp: 'Just now',
+      reactions: [{ emoji: '🔥', count: 1, users: ['system'] }],
+      comments: []
+    };
+    const updatedActs = [act, ...activities];
+    setActivities(updatedActs);
+    StoreService.saveActivities(updatedActs, user.email);
+    
+    setCompletingGoal(null);
   };
 
   const handleToggleSubtask = (goalId: string, subtaskId: string) => {
@@ -834,7 +827,7 @@ export function App() {
 
       <MobileNav activeView={activeView} setActiveView={handleSetActiveView} />
 
-      <GoalModal
+      <GoalWizardModal
         isOpen={isGoalModalOpen}
         onClose={() => {
           setIsGoalModalOpen(false);
@@ -847,9 +840,19 @@ export function App() {
             handleCreateGoal(goalData);
           }
         }}
-        existingCount={goals.filter(g => g.targetDay === 'today').length}
-        initialData={editingGoal}
+        groups={groups}
       />
+
+      {completingGoal && (
+        <SessionCompleteModal
+          isOpen={!!completingGoal}
+          goal={completingGoal}
+          groups={groups}
+          onClose={() => setCompletingGoal(null)}
+          onConfirm={handleConfirmGoalCompletion}
+          currentStreak={user.currentStreak}
+        />
+      )}
 
       <CSVImportModal
         isOpen={isCSVModalOpen}

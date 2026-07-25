@@ -25,6 +25,9 @@ export interface Goal {
   targetDay: TargetDay;
   targetDate?: string; // YYYY-MM-DD for custom dates
   completedAt?: string;
+  actualMinutes?: number;
+  earnedXP?: number;
+  linkedGroups?: string[];
   createdAt: string;
   userId: string;
   groupId?: string;

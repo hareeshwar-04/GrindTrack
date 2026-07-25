@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Goal, Group, TaskStatus, UserProfile } from '../../types';
 import { calculateXP } from '../../services/store';
-import { CheckCircle2, ChevronDown, ChevronUp, Clock, Zap, Flag, MoreHorizontal, Shield, Edit3, Trash2 } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronUp, Clock, Zap, Flag, MoreHorizontal, Shield, Edit3, Trash2, Target } from 'lucide-react';
 
 interface GamifiedTaskCardProps {
   goal: Goal;
@@ -15,15 +15,15 @@ interface GamifiedTaskCardProps {
 export const GamifiedTaskCard: React.FC<GamifiedTaskCardProps> = ({ goal, user, groups, onUpdateStatus, onEdit, onDelete }) => {
   const [expanded, setExpanded] = useState(false);
   const isCompleted = goal.status === 'completed';
-  const taskXP = calculateXP(goal.difficulty);
 
   const handleComplete = (e: React.MouseEvent) => {
     e.stopPropagation();
+    // Pass status update, App.tsx will handle opening the SessionCompleteModal if going from pending -> completed
     onUpdateStatus(goal.id, isCompleted ? 'pending' : 'completed');
   };
 
-  // Find which groups this user is currently active in to show contributions
-  const activeGroups = groups.filter(g => g.memberIds.includes(user.id));
+  // Find which groups this goal is explicitly linked to
+  const activeGroups = groups.filter(g => (goal.linkedGroups || []).includes(g.id));
 
   return (
     <div 
@@ -60,10 +60,16 @@ export const GamifiedTaskCard: React.FC<GamifiedTaskCardProps> = ({ goal, user, 
             {goal.title}
           </h3>
           
-          <div className="flex items-center gap-3 mt-2 text-xs font-bold">
+          <div className="flex flex-wrap items-center gap-3 mt-2 text-xs font-bold">
             <div className="flex items-center gap-1 text-[#F59E0B]">
-              <Zap className="w-3.5 h-3.5" /> +{taskXP} XP
+              <Clock className="w-3.5 h-3.5" /> 
+              {isCompleted ? `${goal.actualMinutes} mins logged` : `Est. ${goal.estimatedMinutes} mins`}
             </div>
+            {isCompleted && goal.earnedXP && (
+              <div className="flex items-center gap-1 text-[#10B981]">
+                <Zap className="w-3.5 h-3.5" /> +{goal.earnedXP} XP
+              </div>
+            )}
             {goal.deadline && (
               <div className="flex items-center gap-1 text-[#9CA3AF]">
                 <Clock className="w-3.5 h-3.5" /> {goal.deadline}
@@ -110,22 +116,24 @@ export const GamifiedTaskCard: React.FC<GamifiedTaskCardProps> = ({ goal, user, 
             {/* Right Col: Gameplay Loop Engine */}
             <div className="bg-[#111111] rounded-xl p-4 border border-[#222]">
               <h4 className="text-[10px] font-bold text-[#00E5FF] uppercase mb-3 flex items-center gap-1">
-                <Zap className="w-3 h-3" /> Expected XP Contribution
+                <Target className="w-3 h-3" /> Mission Rewards
               </h4>
               
               <div className="space-y-3 text-xs font-bold">
-                <div className="flex items-center justify-between text-white">
-                  <span>Your Personal Profile</span>
-                  <span className="text-[#F59E0B]">+{taskXP} XP</span>
+                <div className="flex items-center justify-between text-[#9CA3AF]">
+                  <span>System Reward (XP)</span>
+                  <span className={isCompleted ? 'text-[#F59E0B]' : 'text-white'}>
+                    {isCompleted ? `+${goal.earnedXP} XP` : 'Calculated upon completion'}
+                  </span>
                 </div>
                 
                 {activeGroups.length > 0 && (
                   <div className="pt-2 border-t border-[#333] space-y-2">
-                    <span className="text-[10px] text-[#9CA3AF] uppercase">Squad Contributions</span>
+                    <span className="text-[10px] text-[#9CA3AF] uppercase">Linked Squads</span>
                     {activeGroups.map(group => (
                       <div key={group.id} className="flex items-center justify-between text-[#8B5CF6]">
                         <span className="truncate pr-2">{group.name}</span>
-                        <span className="shrink-0">+{taskXP} XP</span>
+                        <span className="shrink-0">{isCompleted ? `+${goal.earnedXP} XP` : 'Pending'}</span>
                       </div>
                     ))}
                   </div>
@@ -133,7 +141,7 @@ export const GamifiedTaskCard: React.FC<GamifiedTaskCardProps> = ({ goal, user, 
                 
                 {activeGroups.length === 0 && (
                   <div className="pt-2 border-t border-[#333]">
-                    <span className="text-[10px] text-[#9CA3AF]">You are not in any squads. Join one to contribute XP!</span>
+                    <span className="text-[10px] text-[#9CA3AF]">This mission is not linked to any squads.</span>
                   </div>
                 )}
               </div>
