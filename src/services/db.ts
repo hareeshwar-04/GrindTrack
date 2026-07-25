@@ -253,6 +253,23 @@ export class DatabaseService {
     return data;
   }
 
+  static async addSquadXP(userId: string, xpAmount: number) {
+    if (!supabase || xpAmount <= 0) return;
+    // We cannot use a simple raw SQL update like `xp_earned = xp_earned + X` directly in standard supabase-js without an RPC, 
+    // so we will fetch their squad memberships, then update them.
+    const { data: memberships } = await supabase.from('squad_members').select('id, xp_earned').eq('user_id', userId);
+    if (!memberships || memberships.length === 0) return;
+
+    // Run updates in parallel
+    await Promise.all(
+      memberships.map(m => 
+        supabase!.from('squad_members')
+          .update({ xp_earned: (m.xp_earned || 0) + xpAmount })
+          .eq('id', m.id)
+      )
+    );
+  }
+
   static async getSquadMembers(squadId: string): Promise<GroupMember[]> {
     if (!supabase) return [];
     

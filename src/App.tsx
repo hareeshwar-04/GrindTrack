@@ -10,7 +10,7 @@ import { AuthModal } from './components/AuthModal';
 
 import { DashboardView } from './views/DashboardView';
 import { GoalsView } from './views/GoalsView';
-import { GroupsView } from './views/GroupsView';
+import { GroupsLayout } from './views/groups/GroupsLayout';
 import { ProfileView } from './views/ProfileView';
 import { LeaderboardView } from './views/LeaderboardView';
 import { ActivityView } from './views/ActivityView';
@@ -450,7 +450,7 @@ export function App() {
           return g;
         });
         setGroups(updatedGroups);
-        StoreService.saveGroups(updatedGroups, user.email);
+        DatabaseService.addSquadXP(user.id, totalXP).catch(console.error);
       }
 
       const actText = allTodayCompleted
@@ -771,70 +771,9 @@ export function App() {
         )}
 
         {activeView === 'groups' && (
-          <GroupsView
-            groups={groups}
-            members={groupMembers}
+          <GroupsLayout
             currentUser={user}
-            onSelectMemberProfile={(m) => setSelectedMember(m)}
-            onCreateGroup={async (name, desc, isPrivate) => {
-              try {
-                const newSquad = await DatabaseService.createSquad(user.id, name, desc, isPrivate);
-                if (newSquad) {
-                  setGroups([...groups, newSquad]);
-                  showToast('Squad created successfully!', 'success');
-                }
-              } catch (e: any) {
-                console.error(e);
-                showToast(e.message || 'Failed to create squad', 'error');
-              }
-            }}
-            onJoinGroup={async (code) => {
-              try {
-                const joinedSquad = await DatabaseService.joinSquadWithCode(user.id, code);
-                if (joinedSquad) {
-                  // Re-fetch squads and members
-                  const allSquads = await DatabaseService.getUserSquads(user.id);
-                  setGroups(allSquads);
-                  
-                  // Refetch members
-                  const mems = await DatabaseService.getSquadMembers(joinedSquad.id);
-                  setGroupMembers(prev => {
-                    const newArray = [...prev];
-                    mems.forEach(m => {
-                      if (!newArray.find(x => x.id === m.id)) newArray.push(m);
-                    });
-                    return newArray;
-                  });
-                  
-                  showToast(`Joined squad successfully!`, 'success');
-                }
-              } catch (e: any) {
-                console.error(e);
-                showToast(e.message || 'Failed to join squad', 'error');
-              }
-            }}
-            onPreviewGroup={async (code) => {
-              try {
-                return await DatabaseService.previewSquad(code);
-              } catch (e: any) {
-                showToast(e.message || 'Invalid Invite Code', 'error');
-                return null;
-              }
-            }}
-            onKickMember={async (memberId) => {
-              try {
-                const currentGroup = groups.find(g => g.memberIds.includes(memberId));
-                if (currentGroup) {
-                  await DatabaseService.kickMember(currentGroup.id, memberId);
-                  // Refresh squads to update memberIds
-                  const allSquads = await DatabaseService.getUserSquads(user.id);
-                  setGroups(allSquads);
-                  showToast('Member kicked successfully.', 'success');
-                }
-              } catch (e: any) {
-                showToast(e.message || 'Failed to kick member.', 'error');
-              }
-            }}
+            initialInviteCode={new URLSearchParams(window.location.search).get('join') || undefined}
           />
         )}
 
