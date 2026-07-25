@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Goal, Category, Priority, TaskStatus } from '../types';
+import { Goal, Category, TaskStatus } from '../types';
 import { calculateXP } from '../services/store';
 import { 
   CheckSquare, Plus, Search, Filter, Clock, CheckCircle2, XCircle, 
-  SkipForward, Calendar, Shield, Sparkles, FileSpreadsheet 
+  SkipForward, Calendar, Shield, Sparkles, FileSpreadsheet, Edit3, Trash2, ArrowRight
 } from 'lucide-react';
 
 interface GoalsViewProps {
@@ -12,6 +12,9 @@ interface GoalsViewProps {
   onOpenCSVImport?: () => void;
   onUpdateGoalStatus: (goalId: string, status: TaskStatus) => void;
   onToggleSubtask: (goalId: string, subtaskId: string) => void;
+  onDeleteGoal: (goalId: string) => void;
+  onRollOverGoal: (goalId: string) => void;
+  onEditGoal: (goal: Goal) => void;
 }
 
 export const GoalsView: React.FC<GoalsViewProps> = ({
@@ -19,7 +22,10 @@ export const GoalsView: React.FC<GoalsViewProps> = ({
   onOpenNewGoal,
   onOpenCSVImport,
   onUpdateGoalStatus,
-  onToggleSubtask
+  onToggleSubtask,
+  onDeleteGoal,
+  onRollOverGoal,
+  onEditGoal
 }) => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [horizonFilter, setHorizonFilter] = useState<string>('all');
@@ -162,10 +168,8 @@ export const GoalsView: React.FC<GoalsViewProps> = ({
                     <div className="flex items-center gap-2 flex-wrap mb-1">
                       <span className="badge badge-primary text-[9px] py-0">{g.category}</span>
                       <span className={`badge text-[9px] py-0 uppercase ${
-                        g.priority === 'urgent' ? 'badge-danger' : g.priority === 'high' ? 'badge-warning' : 'badge-primary'
-                      }`}>
-                        {g.priority}
-                      </span>
+                        g.difficulty === 'beast' ? 'badge-danger' : g.difficulty === 'hard' ? 'badge-warning' : g.difficulty === 'medium' ? 'badge-accent' : 'badge-success'
+                      }`}>{g.difficulty}</span>
                     </div>
                     <h4 className={`font-bold text-sm ${isCompleted ? 'line-through text-[#9CA3AF]' : 'text-white'}`}>
                       {g.title}
@@ -232,8 +236,39 @@ export const GoalsView: React.FC<GoalsViewProps> = ({
                       >
                         <SkipForward className="w-4 h-4" />
                       </button>
+
+                      {g.targetDay === 'today' && (
+                        <button
+                          onClick={() => onRollOverGoal(g.id)}
+                          className="p-1.5 rounded-lg bg-[#8B5CF6]/15 hover:bg-[#8B5CF6]/30 text-[#8B5CF6]"
+                          title="Roll Over to Tomorrow"
+                        >
+                          <ArrowRight className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   )}
+
+                  <div className="flex items-center gap-1 border-l border-[#222] pl-2 ml-1">
+                    <button
+                      onClick={() => onEditGoal(g)}
+                      className="p-1.5 text-[#9CA3AF] hover:text-white transition-colors"
+                      title="Edit Goal"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (window.confirm('Are you sure you want to delete this goal?')) {
+                          onDeleteGoal(g.id);
+                        }
+                      }}
+                      className="p-1.5 text-[#EF4444] hover:text-[#DC2626] transition-colors"
+                      title="Delete Goal"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
 
               </div>

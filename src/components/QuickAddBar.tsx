@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TargetDay, Category, Priority } from '../types';
+import { TargetDay, Category } from '../types';
 import { Zap, Plus, Sparkles, CornerDownLeft } from 'lucide-react';
 
 interface QuickAddBarProps {

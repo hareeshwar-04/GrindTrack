@@ -1,4 +1,3 @@
-export type Priority = 'low' | 'medium' | 'high' | 'urgent';
 export type Category = 'Work' | 'Health' | 'Study' | 'Code' | 'Personal' | 'Finance';
 export type Difficulty = 'easy' | 'medium' | 'hard' | 'beast';
 export type TaskStatus = 'pending' | 'completed' | 'failed' | 'skipped';
@@ -15,7 +14,6 @@ export interface Goal {
   title: string;
   description: string;
   category: Category;
-  priority: Priority;
   deadline: string; // e.g. "22:00"
   estimatedMinutes: number;
   difficulty: Difficulty;
@@ -80,6 +78,12 @@ export interface GroupMember extends UserProfile {
   currentGoalCount: number;
 }
 
+// Per-member data within a group (join date + group-scoped XP)
+export interface GroupMemberData {
+  joinedAt: string;  // ISO date when this user joined this group
+  xp: number;        // XP earned within THIS group only (starts at 0 on join)
+}
+
 export interface Group {
   id: string;
   name: string;
@@ -90,6 +94,7 @@ export interface Group {
   ownerId: string;
   adminIds: string[];
   memberIds: string[];
+  memberData: Record<string, GroupMemberData>; // userId -> { joinedAt, xp }
   createdAt: string;
 }
 

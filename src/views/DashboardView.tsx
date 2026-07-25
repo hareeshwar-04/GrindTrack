@@ -6,7 +6,7 @@ import confetti from 'canvas-confetti';
 import { QuickAddBar } from '../components/QuickAddBar';
 import { 
   Flame, Zap, Trophy, Target, CheckCircle2, XCircle, SkipForward, Clock, 
-  Sparkles, RefreshCw, ChevronRight, Plus, Calendar, AlertCircle, FileSpreadsheet 
+  Sparkles, RefreshCw, ChevronRight, Plus, Calendar, AlertCircle, FileSpreadsheet, Edit3, Trash2, ArrowRight
 } from 'lucide-react';
 
 interface DashboardViewProps {
@@ -20,6 +20,9 @@ interface DashboardViewProps {
   onOpenCSVImport?: () => void;
   onNavigateView: (view: string) => void;
   onQuickAddGoal?: (title: string, targetDay: any) => void;
+  onDeleteGoal: (goalId: string) => void;
+  onRollOverGoal: (goalId: string) => void;
+  onEditGoal: (goal: Goal) => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -32,7 +35,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onOpenNewGoal,
   onOpenCSVImport,
   onNavigateView,
-  onQuickAddGoal
+  onQuickAddGoal,
+  onDeleteGoal,
+  onRollOverGoal,
+  onEditGoal
 }) => {
   const [activeTab, setActiveTab] = useState<'today' | 'tomorrow' | 'week' | 'month'>('today');
   const [quote, setQuote] = useState<AIQuote>(AIService.getRandomQuote());
@@ -316,7 +322,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         {/* Header Badges Row */}
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="badge badge-primary text-[10px] px-2.5 py-1 font-bold">{g.category}</span>
-                          <span className="badge badge-accent text-[10px] px-2.5 py-1 font-bold uppercase">{g.priority} PRIORITY</span>
+                          <span className={`badge text-[10px] px-2.5 py-1 font-bold uppercase ${
+                            g.difficulty === 'beast' ? 'badge-danger' : g.difficulty === 'hard' ? 'badge-warning' : g.difficulty === 'medium' ? 'badge-accent' : 'badge-success'
+                          }`}>{g.difficulty}</span>
                           <span className="text-xs text-[#9CA3AF] flex items-center gap-1 font-medium ml-1">
                             <Clock className="w-3.5 h-3.5 text-[#00E5FF]" /> {g.deadline} ({g.estimatedMinutes}m)
                           </span>
@@ -362,22 +370,32 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                               className="p-2 rounded-xl bg-[#10B981]/15 hover:bg-[#10B981]/30 border border-[#10B981]/30 text-[#10B981] transition-colors"
                               title="Mark Completed"
                             >
-                              <CheckCircle2 className="w-5 h-5" />
+                              <CheckCircle2 className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => onUpdateGoalStatus(g.id, 'failed')}
                               className="p-2 rounded-xl bg-[#EF4444]/15 hover:bg-[#EF4444]/30 border border-[#EF4444]/30 text-[#EF4444] transition-colors"
                               title="Mark Failed"
                             >
-                              <XCircle className="w-5 h-5" />
+                              <XCircle className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => onUpdateGoalStatus(g.id, 'skipped')}
                               className="p-2 rounded-xl bg-[#F59E0B]/15 hover:bg-[#F59E0B]/30 border border-[#F59E0B]/30 text-[#F59E0B] transition-colors"
                               title="Skip Goal"
                             >
-                              <SkipForward className="w-5 h-5" />
+                              <SkipForward className="w-4 h-4" />
                             </button>
+                            
+                            {g.targetDay === 'today' && (
+                              <button
+                                onClick={() => onRollOverGoal(g.id)}
+                                className="p-2 rounded-xl bg-[#8B5CF6]/15 hover:bg-[#8B5CF6]/30 border border-[#8B5CF6]/30 text-[#8B5CF6] transition-colors"
+                                title="Roll Over to Tomorrow"
+                              >
+                                <ArrowRight className="w-4 h-4" />
+                              </button>
+                            )}
                           </>
                         )}
                         {isCompleted && (
@@ -385,6 +403,28 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                             COMPLETED
                           </span>
                         )}
+
+                        {/* Management Actions */}
+                        <div className="flex items-center gap-1 border-l border-[#222] pl-2 ml-1">
+                          <button
+                            onClick={() => onEditGoal(g)}
+                            className="p-2 text-[#9CA3AF] hover:text-white transition-colors"
+                            title="Edit Goal"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (window.confirm('Are you sure you want to delete this goal?')) {
+                                onDeleteGoal(g.id);
+                              }
+                            }}
+                            className="p-2 text-[#EF4444] hover:text-[#DC2626] transition-colors"
+                            title="Delete Goal"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
 
                     </div>

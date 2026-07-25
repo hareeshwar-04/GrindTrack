@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Goal, Category, Priority, Difficulty, TargetDay, Subtask } from '../types';
+import { Goal, Category, Difficulty, TargetDay, Subtask } from '../types';
 import { X, Plus, Trash2, Calendar, Clock, Tag, Award, Sparkles } from 'lucide-react';
 
 interface GoalModalProps {
@@ -7,18 +7,19 @@ interface GoalModalProps {
   onClose: () => void;
   onSave: (goal: Partial<Goal>) => void;
   existingCount: number;
+  initialData?: Goal | null;
 }
 
 export const GoalModal: React.FC<GoalModalProps> = ({
   isOpen,
   onClose,
   onSave,
-  existingCount
+  existingCount,
+  initialData
 }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<Category>('Work');
-  const [priority, setPriority] = useState<Priority>('medium');
   const [difficulty, setDifficulty] = useState<Difficulty>('medium');
   const [deadline, setDeadline] = useState('21:00');
   const [estimatedMinutes, setEstimatedMinutes] = useState(30);
@@ -30,6 +31,36 @@ export const GoalModal: React.FC<GoalModalProps> = ({
   const [subtasks, setSubtasks] = useState<Subtask[]>([]);
   const [errorMsg, setErrorMsg] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  React.useEffect(() => {
+    if (initialData && isOpen) {
+      setTitle(initialData.title);
+      setDescription(initialData.description || '');
+      setCategory(initialData.category);
+      setDifficulty(initialData.difficulty);
+      setDeadline(initialData.deadline);
+      setEstimatedMinutes(initialData.estimatedMinutes);
+      setColorLabel(initialData.colorLabel);
+      setTagsInput(initialData.tags.join(', '));
+      setTargetDay(initialData.targetDay);
+      setTargetDate(initialData.targetDate || '');
+      setRecurring(initialData.recurring);
+      setSubtasks(initialData.subtasks || []);
+    } else if (isOpen) {
+      setTitle('');
+      setDescription('');
+      setCategory('Work');
+      setDifficulty('medium');
+      setDeadline('21:00');
+      setEstimatedMinutes(30);
+      setColorLabel('#00E5FF');
+      setTagsInput('Code, Productivity');
+      setTargetDay('today');
+      setTargetDate('');
+      setRecurring('none');
+      setSubtasks([]);
+    }
+  }, [initialData, isOpen]);
 
   if (!isOpen) return null;
 
@@ -63,7 +94,6 @@ export const GoalModal: React.FC<GoalModalProps> = ({
       title: title.trim(),
       description: description.trim(),
       category,
-      priority,
       difficulty,
       deadline,
       estimatedMinutes: Number(estimatedMinutes),
@@ -90,7 +120,9 @@ export const GoalModal: React.FC<GoalModalProps> = ({
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-display font-extrabold text-lg text-white">Create New Goal</h3>
+              <h3 className="font-display font-extrabold text-lg text-white">
+                {initialData ? 'Edit Goal' : 'Create New Goal'}
+              </h3>
               <p className="text-xs text-[#9CA3AF]">Define your target commitment across any scheduling horizon</p>
             </div>
           </div>
@@ -207,16 +239,16 @@ export const GoalModal: React.FC<GoalModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#9CA3AF] mb-1">Priority</label>
+                  <label className="block text-xs font-bold text-[#9CA3AF] mb-1">Difficulty</label>
                   <select
-                    value={priority}
-                    onChange={(e) => setPriority(e.target.value as Priority)}
+                    value={difficulty}
+                    onChange={(e) => setDifficulty(e.target.value as Difficulty)}
                     className="form-select text-xs"
                   >
-                    <option value="low">🟢 Low</option>
-                    <option value="medium">🟡 Medium</option>
-                    <option value="high">🔴 High</option>
-                    <option value="urgent">🔥 Urgent</option>
+                    <option value="easy">🟩 Easy (10 XP)</option>
+                    <option value="medium">🟨 Medium (25 XP)</option>
+                    <option value="hard">🟥 Hard (50 XP)</option>
+                    <option value="beast">🔥 Beast (100 XP)</option>
                   </select>
                 </div>
               </div>
@@ -327,7 +359,7 @@ export const GoalModal: React.FC<GoalModalProps> = ({
               type="submit"
               className="btn btn-primary text-xs"
             >
-              Save & Publish Goal 🚀
+              {initialData ? 'Save Changes ✅' : 'Save & Publish Goal 🚀'}
             </button>
           </div>
 

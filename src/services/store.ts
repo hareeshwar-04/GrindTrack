@@ -46,27 +46,30 @@ function generateInitialHeatmap(): Record<string, number> {
   return map;
 }
 
-export const INITIAL_BADGES: Badge[] = [
-  { id: 'b1', name: 'Early Bird', description: 'Complete a task before 7:00 AM', icon: '🌅', category: 'Time', requiredVal: 1, userProgress: 1, isUnlocked: true, unlockedAt: '2026-07-10' },
-  { id: 'b2', name: 'Night Owl', description: 'Set goals past 11:00 PM for 5 consecutive days', icon: '🦉', category: 'Time', requiredVal: 5, userProgress: 3, isUnlocked: false },
-  { id: 'b3', name: '100 Goals', description: 'Successfully finish 100 goals', icon: '💯', category: 'Volume', requiredVal: 100, userProgress: 128, isUnlocked: true, unlockedAt: '2026-07-18' },
-  { id: 'b4', name: '1000 Goals', description: 'Reach 1,000 completed goals legend status', icon: '👑', category: 'Volume', requiredVal: 1000, userProgress: 128, isUnlocked: false },
-  { id: 'b5', name: 'Never Missed Monday', description: 'Complete 100% goals on 4 Mondays in a row', icon: '⚡', category: 'Consistency', requiredVal: 4, userProgress: 4, isUnlocked: true, unlockedAt: '2026-07-20' },
-  { id: 'b6', name: 'Weekend Warrior', description: 'Grind through 10 full weekend days', icon: '⚔️', category: 'Consistency', requiredVal: 10, userProgress: 7, isUnlocked: false },
-  { id: 'b7', name: 'Coding Beast', description: 'Complete 30 Code category tasks', icon: '💻', category: 'Skill', requiredVal: 30, userProgress: 30, isUnlocked: true, unlockedAt: '2026-07-15' },
-  { id: 'b8', name: 'Consistency King', description: 'Maintain a 14-day goal streak', icon: '🏆', category: 'Streak', requiredVal: 14, userProgress: 14, isUnlocked: true, unlockedAt: '2026-07-24' },
-  { id: 'b9', name: 'Perfect Week', description: '100% goal completion for 7 consecutive days', icon: '🌟', category: 'Streak', requiredVal: 7, userProgress: 7, isUnlocked: true, unlockedAt: '2026-07-21' },
-  { id: 'b10', name: 'Perfect Month', description: '100% goal completion for 30 consecutive days', icon: '💎', category: 'Streak', requiredVal: 30, userProgress: 14, isUnlocked: false }
+// Fresh badges template — all locked with 0 progress for new users
+export const FRESH_BADGES: Badge[] = [
+  { id: 'b1', name: 'Early Bird', description: 'Complete a task before 7:00 AM', icon: '🌅', category: 'Time', requiredVal: 1, userProgress: 0, isUnlocked: false },
+  { id: 'b2', name: 'Night Owl', description: 'Set goals past 11:00 PM for 5 consecutive days', icon: '🦉', category: 'Time', requiredVal: 5, userProgress: 0, isUnlocked: false },
+  { id: 'b3', name: '100 Goals', description: 'Successfully finish 100 goals', icon: '💯', category: 'Volume', requiredVal: 100, userProgress: 0, isUnlocked: false },
+  { id: 'b4', name: '1000 Goals', description: 'Reach 1,000 completed goals legend status', icon: '👑', category: 'Volume', requiredVal: 1000, userProgress: 0, isUnlocked: false },
+  { id: 'b5', name: 'Never Missed Monday', description: 'Complete 100% goals on 4 Mondays in a row', icon: '⚡', category: 'Consistency', requiredVal: 4, userProgress: 0, isUnlocked: false },
+  { id: 'b6', name: 'Weekend Warrior', description: 'Grind through 10 full weekend days', icon: '⚔️', category: 'Consistency', requiredVal: 10, userProgress: 0, isUnlocked: false },
+  { id: 'b7', name: 'Coding Beast', description: 'Complete 30 Code category tasks', icon: '💻', category: 'Skill', requiredVal: 30, userProgress: 0, isUnlocked: false },
+  { id: 'b8', name: 'Consistency King', description: 'Maintain a 14-day goal streak', icon: '🏆', category: 'Streak', requiredVal: 14, userProgress: 0, isUnlocked: false },
+  { id: 'b9', name: 'Perfect Week', description: '100% goal completion for 7 consecutive days', icon: '🌟', category: 'Streak', requiredVal: 7, userProgress: 0, isUnlocked: false },
+  { id: 'b10', name: 'Perfect Month', description: '100% goal completion for 30 consecutive days', icon: '💎', category: 'Streak', requiredVal: 30, userProgress: 0, isUnlocked: false }
 ];
+
+// Legacy mock badges for demo reference (not used for new accounts)
+export const INITIAL_BADGES = FRESH_BADGES;
 
 export const INITIAL_GOALS: Goal[] = [
   {
     id: 'g1',
     title: 'Review SystemVerilog RTL Architecture',
     description: 'Optimize timing paths and check testbench coverage report for final release',
-    category: 'Code',
-    priority: 'urgent',
-    deadline: '18:00',
+    category: 'Work',
+    deadline: '22:00',
     estimatedMinutes: 60,
     difficulty: 'hard',
     colorLabel: '#00E5FF',
@@ -87,8 +90,7 @@ export const INITIAL_GOALS: Goal[] = [
     title: 'Morning 5K Gym Run & Hydration',
     description: 'Target sub-25 min pace and 3L total water intake',
     category: 'Health',
-    priority: 'high',
-    deadline: '08:30',
+    deadline: '08:00',
     estimatedMinutes: 45,
     difficulty: 'medium',
     colorLabel: '#10B981',
@@ -108,9 +110,8 @@ export const INITIAL_GOALS: Goal[] = [
     id: 'g3',
     title: 'Deploy GrindTrack Production Build to Vercel',
     description: 'Verify PWA manifest, service worker offline fallback & webhooks',
-    category: 'Work',
-    priority: 'high',
-    deadline: '21:00',
+    category: 'Study',
+    deadline: '23:59',
     estimatedMinutes: 30,
     difficulty: 'beast',
     colorLabel: '#8B5CF6',
@@ -130,8 +131,7 @@ export const INITIAL_GOALS: Goal[] = [
     title: 'Read 20 Pages of Atomic Habits',
     description: 'Chapter on identity-based habit loops and social accountability design',
     category: 'Personal',
-    priority: 'low',
-    deadline: '23:00',
+    deadline: '12:00',
     estimatedMinutes: 25,
     difficulty: 'easy',
     colorLabel: '#F59E0B',
@@ -147,9 +147,8 @@ export const INITIAL_GOALS: Goal[] = [
     id: 'g5',
     title: 'Setup Google Sheets API Webhook Sync',
     description: 'Hook spreadsheet rows directly to task list auto-import engine',
-    category: 'Code',
-    priority: 'high',
-    deadline: '11:00',
+    category: 'Finance',
+    deadline: '17:00',
     estimatedMinutes: 40,
     difficulty: 'hard',
     colorLabel: '#00E5FF',
@@ -283,6 +282,12 @@ export const INITIAL_GROUPS: Group[] = [
     ownerId: 'user_1',
     adminIds: ['user_1', 'user_2'],
     memberIds: ['user_1', 'user_2', 'user_3', 'user_4'],
+    memberData: {
+      'user_1': { joinedAt: '2026-06-01', xp: 0 },
+      'user_2': { joinedAt: '2026-06-01', xp: 0 },
+      'user_3': { joinedAt: '2026-06-05', xp: 0 },
+      'user_4': { joinedAt: '2026-06-10', xp: 0 }
+    },
     createdAt: '2026-06-01'
   },
   {
@@ -295,6 +300,10 @@ export const INITIAL_GROUPS: Group[] = [
     ownerId: 'user_3',
     adminIds: ['user_3'],
     memberIds: ['user_1', 'user_3'],
+    memberData: {
+      'user_1': { joinedAt: '2026-06-15', xp: 0 },
+      'user_3': { joinedAt: '2026-06-15', xp: 0 }
+    },
     createdAt: '2026-06-15'
   }
 ];
@@ -386,84 +395,141 @@ export function calculateConsistencyXP(streakDays: number, isAllTodayDone: boole
   return xp;
 }
 
-// Deprecated per-task XP calculator (Returns 0 since XP is consistency-based)
-export function calculateXP(_difficulty: Difficulty): number {
-  return 0;
+// Per-task XP calculator based on difficulty
+export function calculateXP(difficulty: Difficulty): number {
+  switch (difficulty) {
+    case 'easy': return 10;
+    case 'medium': return 25;
+    case 'hard': return 50;
+    case 'beast': return 100;
+    default: return 25;
+  }
 }
 
-// Local Storage Helper
-const STORAGE_KEYS = {
-  USER: 'grindtrack_user_v1',
-  GOALS: 'grindtrack_goals_v1',
-  GROUPS: 'grindtrack_groups_v1',
-  ACTIVITIES: 'grindtrack_activities_v1',
-  NOTIFICATIONS: 'grindtrack_notifications_v1',
-  BADGES: 'grindtrack_badges_v1',
-  SPREADSHEET: 'grindtrack_spreadsheet_v1'
-};
-
+// Local Storage Helper with User Isolation
 export class StoreService {
-  static getUser(): UserProfile {
-    const raw = localStorage.getItem(STORAGE_KEYS.USER);
-    return raw ? JSON.parse(raw) : INITIAL_USER;
+  private static getKey(email: string | undefined, type: string): string {
+    const activeEmail = email || localStorage.getItem('grindtrack_active_email') || 'demo';
+    const cleanEmail = activeEmail.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    return `grindtrack_${cleanEmail}_${type}_v2`;
+  }
+
+  static getUser(email?: string): UserProfile {
+    const activeEmail = email || localStorage.getItem('grindtrack_active_email');
+    if (!activeEmail || activeEmail === 'demo@grindtrack.app') {
+      return INITIAL_USER;
+    }
+
+    const key = this.getKey(activeEmail, 'user');
+    const raw = localStorage.getItem(key);
+    if (raw) return JSON.parse(raw);
+
+    // Create fresh user profile for a newly signed up user
+    const username = activeEmail.split('@')[0] || 'Grinder';
+    const newUser: UserProfile = {
+      id: 'usr_' + Date.now(),
+      username: username,
+      email: activeEmail,
+      profilePic: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(username)}`,
+      bio: 'Building consistent habits daily on GrindTrack.',
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata',
+      darkTheme: true,
+      currentStreak: 0,
+      longestStreak: 0,
+      xp: 0,
+      level: 1,
+      rank: 'Novice Grinder',
+      totalGoals: 0,
+      completedGoals: 0,
+      failedGoals: 0,
+      skippedGoals: 0,
+      consistencyRate: 100,
+      successRate: 100,
+      avgCompletionTimeMins: 30,
+      mostProductiveHour: '09:00 AM - 11:00 AM',
+      mostProductiveDay: 'Monday',
+      badgesUnlocked: [],
+      moodEmoji: '⚡',
+      onlineStatus: 'online',
+      lastSeen: 'Just now',
+      heatmapData: {}
+    };
+    this.saveUser(newUser);
+    return newUser;
   }
 
   static saveUser(user: UserProfile) {
-    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+    if (user.email) {
+      localStorage.setItem('grindtrack_active_email', user.email);
+      const key = this.getKey(user.email, 'user');
+      localStorage.setItem(key, JSON.stringify(user));
+    }
   }
 
-  static getGoals(): Goal[] {
-    const raw = localStorage.getItem(STORAGE_KEYS.GOALS);
-    return raw ? JSON.parse(raw) : INITIAL_GOALS;
+  static getGoals(email?: string): Goal[] {
+    const key = this.getKey(email, 'goals');
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : [];
   }
 
-  static saveGoals(goals: Goal[]) {
-    localStorage.setItem(STORAGE_KEYS.GOALS, JSON.stringify(goals));
+  static saveGoals(goals: Goal[], email?: string) {
+    const key = this.getKey(email, 'goals');
+    localStorage.setItem(key, JSON.stringify(goals));
   }
 
-  static getGroups(): Group[] {
-    const raw = localStorage.getItem(STORAGE_KEYS.GROUPS);
-    return raw ? JSON.parse(raw) : INITIAL_GROUPS;
+  static getGroups(email?: string): Group[] {
+    const key = this.getKey(email, 'groups');
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : [];
   }
 
-  static saveGroups(groups: Group[]) {
-    localStorage.setItem(STORAGE_KEYS.GROUPS, JSON.stringify(groups));
+  static saveGroups(groups: Group[], email?: string) {
+    const key = this.getKey(email, 'groups');
+    localStorage.setItem(key, JSON.stringify(groups));
   }
 
-  static getActivities(): ActivityFeedItem[] {
-    const raw = localStorage.getItem(STORAGE_KEYS.ACTIVITIES);
-    return raw ? JSON.parse(raw) : INITIAL_ACTIVITIES;
+  static getActivities(email?: string): ActivityFeedItem[] {
+    const key = this.getKey(email, 'activities');
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : [];
   }
 
-  static saveActivities(activities: ActivityFeedItem[]) {
-    localStorage.setItem(STORAGE_KEYS.ACTIVITIES, JSON.stringify(activities));
+  static saveActivities(activities: ActivityFeedItem[], email?: string) {
+    const key = this.getKey(email, 'activities');
+    localStorage.setItem(key, JSON.stringify(activities));
   }
 
-  static getNotifications(): NotificationItem[] {
-    const raw = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
-    return raw ? JSON.parse(raw) : INITIAL_NOTIFICATIONS;
+  static getNotifications(email?: string): NotificationItem[] {
+    const key = this.getKey(email, 'notifications');
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : [];
   }
 
-  static saveNotifications(notifs: NotificationItem[]) {
-    localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifs));
+  static saveNotifications(notifs: NotificationItem[], email?: string) {
+    const key = this.getKey(email, 'notifications');
+    localStorage.setItem(key, JSON.stringify(notifs));
   }
 
-  static getBadges(): Badge[] {
-    const raw = localStorage.getItem(STORAGE_KEYS.BADGES);
-    return raw ? JSON.parse(raw) : INITIAL_BADGES;
+  static getBadges(email?: string): Badge[] {
+    const key = this.getKey(email, 'badges');
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : FRESH_BADGES;
   }
 
-  static saveBadges(badges: Badge[]) {
-    localStorage.setItem(STORAGE_KEYS.BADGES, JSON.stringify(badges));
+  static saveBadges(badges: Badge[], email?: string) {
+    const key = this.getKey(email, 'badges');
+    localStorage.setItem(key, JSON.stringify(badges));
   }
 
-  static getSpreadsheetConfig(): SpreadsheetConfig {
-    const raw = localStorage.getItem(STORAGE_KEYS.SPREADSHEET);
+  static getSpreadsheetConfig(email?: string): SpreadsheetConfig {
+    const key = this.getKey(email, 'spreadsheet');
+    const raw = localStorage.getItem(key);
     return raw ? JSON.parse(raw) : INITIAL_SPREADSHEET_CONFIG;
   }
 
-  static saveSpreadsheetConfig(config: SpreadsheetConfig) {
-    localStorage.setItem(STORAGE_KEYS.SPREADSHEET, JSON.stringify(config));
+  static saveSpreadsheetConfig(config: SpreadsheetConfig, email?: string) {
+    const key = this.getKey(email, 'spreadsheet');
+    localStorage.setItem(key, JSON.stringify(config));
   }
 
   // Automatic Midnight Rollover Simulator Function
@@ -500,7 +566,6 @@ export class StoreService {
     const data = goals.map(g => ({
       Title: g.title,
       Category: g.category,
-      Priority: g.priority,
       Difficulty: g.difficulty,
       Status: g.status,
       TargetDay: g.targetDay,
@@ -530,7 +595,7 @@ export class StoreService {
     let y = 55;
     goals.forEach((g, idx) => {
       doc.setFontSize(10);
-      doc.text(`${idx + 1}. [${g.status.toUpperCase()}] ${g.title} (${g.category} - ${g.priority.toUpperCase()})`, 14, y);
+      doc.text(`${idx + 1}. [${g.status.toUpperCase()}] ${g.title} (${g.category})`, 14, y);
       y += 8;
       if (y > 270) {
         doc.addPage();
@@ -544,12 +609,12 @@ export class StoreService {
   // Generate Sample CSV Template content
   static generateSampleCSV(): string {
     return [
-      'Title,Category,Priority,TargetHorizon,TargetDate,Deadline,EstMins,Description,Subtasks',
-      '"Review SystemVerilog RTL Architecture",Code,urgent,today,,18:00,60,"Check testbench coverage report","Run lint check | Verify synthesized gate simulation | Generate HTML report"',
-      '"Morning 5K Gym Run",Health,high,today,,08:30,45,"Target sub-25 min pace","Warm-up stretches | 5K run complete"',
-      '"Prepare Weekly Sprint Roadmap",Work,high,week,,17:00,120,"Outline architecture milestones","Draft sprint tasks | Review with team"',
-      '"Monthly Portfolio Audit & Rebalance",Finance,medium,month,,20:00,90,"Review asset allocation","Export monthly statement | Rebalance ETF weightings"',
-      '"Quarterly System Architecture Refactor",Code,high,custom,2026-08-15,19:00,180,"Deep refactor of state sync engine","Audit memory leaks | Run performance benchmark"'
+      'Title,Category,TargetHorizon,TargetDate,Deadline,EstMins,Description,Subtasks',
+      '"Review SystemVerilog RTL Architecture",Code,today,,18:00,60,"Check testbench coverage report","Run lint check | Verify synthesized gate simulation | Generate HTML report"',
+      '"Morning 5K Gym Run",Health,today,,08:30,45,"Target sub-25 min pace","Warm-up stretches | 5K run complete"',
+      '"Prepare Weekly Sprint Roadmap",Work,week,,17:00,120,"Outline architecture milestones","Draft sprint tasks | Review with team"',
+      '"Monthly Portfolio Audit & Rebalance",Finance,month,,20:00,90,"Review asset allocation","Export monthly statement | Rebalance ETF weightings"',
+      '"Quarterly System Architecture Refactor",Code,custom,2026-08-15,19:00,180,"Deep refactor of state sync engine","Audit memory leaks | Run performance benchmark"'
     ].join('\n');
   }
 
@@ -582,8 +647,8 @@ export class StoreService {
       };
 
       const title = getCol('title') || `Imported Task #${i}`;
+      const difficulty = (getCol('difficulty').toLowerCase() || 'medium') as any;
       const category = (getCol('category') || 'Work') as any;
-      const priority = (getCol('priority').toLowerCase() || 'medium') as any;
       const rawHorizon = getCol('horizon') || getCol('target') || 'today';
       const targetDay: any = ['today', 'tomorrow', 'week', 'month', 'custom'].includes(rawHorizon.toLowerCase())
         ? rawHorizon.toLowerCase()
@@ -607,10 +672,9 @@ export class StoreService {
         title,
         description,
         category: ['Work', 'Health', 'Study', 'Code', 'Personal', 'Finance'].includes(category) ? category : 'Work',
-        priority: ['low', 'medium', 'high', 'urgent'].includes(priority) ? priority : 'medium',
+        difficulty: ['easy', 'medium', 'hard', 'beast'].includes(difficulty) ? difficulty : 'medium',
         deadline,
         estimatedMinutes: estMins,
-        difficulty: 'medium',
         colorLabel: '#00E5FF',
         tags: ['CSV Import'],
         subtasks,

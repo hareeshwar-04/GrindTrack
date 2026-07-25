@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Goal, TargetDay, Category, Priority } from '../types';
+import { Goal, TargetDay, Category, Difficulty } from '../types';
 import { StoreService } from '../services/store';
 import { 
   FileSpreadsheet, Upload, Download, CheckCircle2, AlertCircle, 
@@ -111,7 +111,6 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({
         title: g.title || 'Untitled Task',
         description: g.description || '',
         category: g.category || 'Work',
-        priority: g.priority || 'medium',
         deadline: g.deadline || '21:00',
         estimatedMinutes: g.estimatedMinutes || 30,
         difficulty: g.difficulty || 'medium',
@@ -260,8 +259,8 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({
                         <td className="py-2 px-3 text-[#9CA3AF]">Optional (Default: Work)</td>
                       </tr>
                       <tr>
-                        <td className="py-2 px-3 font-mono text-[#00E5FF]">Priority</td>
-                        <td className="py-2 px-3">low | medium | high | urgent</td>
+                        <td className="py-2 px-3 font-mono text-[#00E5FF]">Difficulty</td>
+                        <td className="py-2 px-3">easy | medium | hard | beast</td>
                         <td className="py-2 px-3 text-[#9CA3AF]">Optional (Default: medium)</td>
                       </tr>
                       <tr>
@@ -333,7 +332,7 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({
                       <th className="py-3 px-3 w-10 text-center">Include</th>
                       <th className="py-3 px-3 min-w-[200px]">Goal Title</th>
                       <th className="py-3 px-3">Category</th>
-                      <th className="py-3 px-3">Priority</th>
+                      <th className="py-3 px-3">Difficulty</th>
                       <th className="py-3 px-3">Horizon</th>
                       <th className="py-3 px-3">Deadline</th>
                       <th className="py-3 px-3">Subtasks</th>
@@ -382,17 +381,17 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({
                             </select>
                           </td>
 
-                          {/* Priority */}
+                          {/* Difficulty */}
                           <td className="py-3 px-3">
                             <select
-                              value={g.priority || 'medium'}
-                              onChange={(e) => handleUpdateGoalField(idx, 'priority', e.target.value as Priority)}
+                              value={g.difficulty || 'medium'}
+                              onChange={(e) => handleUpdateGoalField(idx, 'difficulty', e.target.value as Difficulty)}
                               className="bg-[#171717] border border-[#262626] text-white text-[11px] rounded px-2 py-1 outline-none uppercase font-semibold"
                             >
-                              <option value="low">Low</option>
+                              <option value="easy">Easy</option>
                               <option value="medium">Medium</option>
-                              <option value="high">High</option>
-                              <option value="urgent">Urgent</option>
+                              <option value="hard">Hard</option>
+                              <option value="beast">Beast</option>
                             </select>
                           </td>
 

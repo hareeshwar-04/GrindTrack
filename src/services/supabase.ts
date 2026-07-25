@@ -18,10 +18,17 @@ export const SupabaseAuth = {
       email,
       password,
       options: {
-        data: { username }
+        data: { username },
+        emailRedirectTo: window.location.origin
       }
     });
     if (error) throw error;
+    
+    // Supabase returns an empty identities array if user already exists
+    if (data?.user && data.user.identities && data.user.identities.length === 0) {
+      throw new Error('An account with this email already exists! Please Sign In or use Magic Link.');
+    }
+
     return data;
   },
 
@@ -32,18 +39,41 @@ export const SupabaseAuth = {
       email,
       password
     });
-    if (error) throw error;
+    if (error) {
+      const msg = error.message.toLowerCase();
+      if (msg.includes('email not confirmed') || msg.includes('not verified')) {
+        throw new Error('Email not verified yet! Please check your Gmail inbox and click the verification link first.');
+      }
+      throw error;
+    }
     return data;
   },
 
-  // Passwordless Magic Link Login
+  // Passwordless Magic Link Login (Requires user to be signed up first)
   signInWithMagicLink: async (email: string) => {
     if (!supabase) throw new Error('Supabase credentials not configured in environment.');
     const { data, error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: window.location.origin
+        emailRedirectTo: window.location.origin,
+        shouldCreateUser: false // Prevents magic link from auto-registering new accounts
       }
+    });
+    if (error) {
+      const msg = error.message.toLowerCase();
+      if (msg.includes('user not found') || msg.includes('signups not allowed') || msg.includes('invalid') || error.status === 400) {
+        throw new Error('No account found with this email. Please click "Sign Up" first to create an account!');
+      }
+      throw error;
+    }
+    return data;
+  },
+
+  // Reset Password via Email
+  resetPassword: async (email: string) => {
+    if (!supabase) throw new Error('Supabase credentials not configured in environment.');
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + '?mode=reset-password',
     });
     if (error) throw error;
     return data;

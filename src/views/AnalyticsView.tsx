@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { UserProfile, Goal } from '../types';
 import { AIService } from '../services/aiService';
-import { StoreService } from '../services/store';
+import { StoreService, calculateXP } from '../services/store';
 import { BarChart3, Download, FileSpreadsheet, FileText, Sparkles, TrendingUp, Target, CheckCircle2 } from 'lucide-react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, BarElement } from 'chart.js';
 import { Doughnut, Line } from 'react-chartjs-2';
@@ -38,12 +38,49 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ user, goals }) => 
     ]
   };
 
+  // Compute real weekly completion percentages from goal data
+  const weeklyData = useMemo(() => {
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const today = new Date();
+    const dailyPcts: number[] = [];
+
+    // Last 7 days
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const dateKey = date.toISOString().split('T')[0];
+
+      // Find goals that were created on this date
+      const dayGoals = goals.filter(g => {
+        const gDate = (g.completedAt || g.createdAt)?.split('T')[0];
+        return gDate === dateKey;
+      });
+
+      if (dayGoals.length === 0) {
+        dailyPcts.push(0);
+      } else {
+        const completed = dayGoals.filter(g => g.status === 'completed').length;
+        dailyPcts.push(Math.round((completed / dayGoals.length) * 100));
+      }
+    }
+
+    // Build labels for last 7 days
+    const labels: string[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      labels.push(dayNames[date.getDay()]);
+    }
+
+    return { labels, data: dailyPcts };
+  }, [goals]);
+
   const lineData = {
-    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    labels: weeklyData.labels,
     datasets: [
       {
         label: 'Completion %',
-        data: [85, 100, 90, 95, 100, 80, 94],
+        data: weeklyData.data,
         borderColor: '#00E5FF',
         backgroundColor: 'rgba(0, 229, 255, 0.1)',
         tension: 0.4,
@@ -51,6 +88,16 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ user, goals }) => 
       }
     ]
   };
+
+  // Compute real stats
+  const totalXPFromGoals = goals
+    .filter(g => g.status === 'completed')
+    .reduce((sum, g) => sum + calculateXP(g.difficulty), 0);
+
+  const avgDailyGoals = useMemo(() => {
+    const uniqueDates = new Set(goals.map(g => (g.createdAt || '').split('T')[0]).filter(Boolean));
+    return uniqueDates.size > 0 ? Math.round(goals.length / uniqueDates.size * 10) / 10 : 0;
+  }, [goals]);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -83,6 +130,26 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ user, goals }) => 
             <FileText className="w-3.5 h-3.5" />
             <span>Generate PDF Report</span>
           </button>
+        </div>
+      </div>
+
+      {/* Quick Stats Bar */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="glass-card p-4 text-center space-y-1">
+          <span className="text-[10px] font-bold text-[#9CA3AF] uppercase">Total Goals</span>
+          <div className="font-display font-extrabold text-xl text-white">{goals.length}</div>
+        </div>
+        <div className="glass-card p-4 text-center space-y-1">
+          <span className="text-[10px] font-bold text-[#10B981] uppercase">Completed</span>
+          <div className="font-display font-extrabold text-xl text-[#10B981]">{goals.filter(g => g.status === 'completed').length}</div>
+        </div>
+        <div className="glass-card p-4 text-center space-y-1">
+          <span className="text-[10px] font-bold text-[#9CA3AF] uppercase">Total XP Earned</span>
+          <div className="font-display font-extrabold text-xl text-[#00E5FF]">{totalXPFromGoals}</div>
+        </div>
+        <div className="glass-card p-4 text-center space-y-1">
+          <span className="text-[10px] font-bold text-[#9CA3AF] uppercase">Avg Goals/Day</span>
+          <div className="font-display font-extrabold text-xl text-[#C084FC]">{avgDailyGoals}</div>
         </div>
       </div>
 
@@ -128,13 +195,18 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ user, goals }) => 
           </div>
         </div>
 
-        {/* Line Chart */}
+        {/* Line Chart — Real data */}
         <div className="glass-card p-6 space-y-4">
           <h3 className="font-bold text-sm text-white flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-[#10B981]" /> Weekly Consistency Trend
+            <TrendingUp className="w-4 h-4 text-[#10B981]" /> Last 7 Days Consistency Trend
           </h3>
           <div className="h-64 flex items-center justify-center">
-            <Line data={lineData} options={{ scales: { x: { ticks: { color: '#9CA3AF' } }, y: { ticks: { color: '#9CA3AF' } } } }} />
+            <Line data={lineData} options={{ 
+              scales: { 
+                x: { ticks: { color: '#9CA3AF' } }, 
+                y: { ticks: { color: '#9CA3AF' }, min: 0, max: 100, title: { display: true, text: '%', color: '#6B7280' } }
+              } 
+            }} />
           </div>
         </div>
 

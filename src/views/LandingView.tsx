@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { SupabaseAuth, isSupabaseConfigured } from '../services/supabase';
-import { Zap, Flame, Users, Shield, ArrowRight, CheckCircle2, Lock, Mail, User, Sparkles, Trophy } from 'lucide-react';
+import { LocalAuth } from '../services/localAuth';
+import { Zap, Flame, Users, Shield, ArrowRight, CheckCircle2, Lock, Mail, User, Sparkles, Trophy, Eye, EyeOff } from 'lucide-react';
 
 interface LandingViewProps {
   onLoginSuccess: (email: string, username: string) => void;
@@ -9,10 +10,14 @@ interface LandingViewProps {
 export const LandingView: React.FC<LandingViewProps> = ({ onLoginSuccess }) => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [isMagicLink, setIsMagicLink] = useState(false);
+  const [isForgot, setIsForgot] = useState(false);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [username, setUsername] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -22,36 +27,68 @@ export const LandingView: React.FC<LandingViewProps> = ({ onLoginSuccess }) => {
     e.preventDefault();
     setErrorMsg('');
     setSuccessMsg('');
+
+    if (isSignUp && password !== confirmPassword) {
+      setErrorMsg('Passwords do not match!');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       if (!isSupabaseConfigured) {
-        // Fallback demo mode if Supabase env vars aren't populated
+        // LOCAL MODE: Use LocalAuth to simulate backend validation
         setTimeout(() => {
+          try {
+            if (isSignUp) {
+              LocalAuth.signUp(email, password, username);
+              setSuccessMsg('Local account created! You can now Sign In.');
+              setIsSignUp(false);
+            } else if (isMagicLink) {
+              setSuccessMsg('Local Magic Link sent! (Check console - simulated)');
+            } else if (isForgot) {
+              LocalAuth.resetPassword(email);
+              setSuccessMsg('Password reset email sent! 📩 (Simulated locally)');
+            } else {
+              const user = LocalAuth.signIn(email, password);
+              setSuccessMsg('Signed in! Loading your dashboard...');
+              onLoginSuccess(user.email, user.username);
+            }
+          } catch (err: any) {
+            setErrorMsg(err.message);
+          }
           setIsLoading(false);
-          onLoginSuccess(email || 'demo@grindtrack.app', username || 'GrindMaster');
         }, 800);
         return;
       }
 
       if (isMagicLink) {
         await SupabaseAuth.signInWithMagicLink(email);
-        setSuccessMsg('Magic login link sent to your email! Check your inbox.');
-      } else if (isSignUp) {
-        const res = await SupabaseAuth.signUpWithEmail(email, password, username);
-        if (res?.user) {
-          setSuccessMsg('Account created! Please check your email to confirm.');
-          onLoginSuccess(res.user.email || email, username || 'New Grinder');
-        }
-      } else {
-        const res = await SupabaseAuth.signInWithEmail(email, password);
-        if (res?.user) {
-          onLoginSuccess(res.user.email || email, res.user.user_metadata?.username || 'GrindMaster');
-        }
+        setSuccessMsg('Magic login link sent to your email! 📩 Check your inbox or spam folder.');
+        setIsLoading(false);
+        return;
       }
+
+      if (isForgot) {
+        await SupabaseAuth.resetPassword(email);
+        setSuccessMsg('Password reset link sent to your email! 📩 Please check your inbox.');
+        setIsLoading(false);
+        return;
+      }
+
+      if (isSignUp) {
+        await SupabaseAuth.signUpWithEmail(email, password, username);
+        setSuccessMsg('Verification link sent to your email! 📩 Please check your inbox and click the verification link, then come back and Sign In.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Sign In — Supabase onAuthStateChange in App.tsx will auto-load user data
+      await SupabaseAuth.signInWithEmail(email, password);
+      setSuccessMsg('Signed in! Loading your dashboard...');
+      // The onAuthStateChange listener will fire and handle everything
     } catch (err: any) {
       setErrorMsg(err.message || 'Authentication error. Please check credentials.');
-    } finally {
       setIsLoading(false);
     }
   };
@@ -151,10 +188,14 @@ export const LandingView: React.FC<LandingViewProps> = ({ onLoginSuccess }) => {
 
             <div className="space-y-1">
               <h3 className="font-display font-extrabold text-xl text-white">
-                {isMagicLink ? 'Passwordless Magic Link' : isSignUp ? 'Create Your Account' : 'Welcome Back'}
+                {isMagicLink ? 'Passwordless Magic Link' : isForgot ? 'Reset Password' : isSignUp ? 'Create Your Account' : 'Welcome Back'}
               </h3>
               <p className="text-xs text-[#9CA3AF]">
-                {isSignUp ? 'Join GrindTrack today and invite your friends' : 'Sign in to access your goals, streaks, and squads'}
+                {isForgot
+                  ? 'Enter your email to receive a password reset link'
+                  : isSignUp 
+                  ? 'Join GrindTrack today and invite your friends' 
+                  : 'Sign in to access your goals, streaks, and squads'}
               </p>
             </div>
 
@@ -176,84 +217,198 @@ export const LandingView: React.FC<LandingViewProps> = ({ onLoginSuccess }) => {
               {isSignUp && !isMagicLink && (
                 <div>
                   <label className="block text-xs font-bold text-[#9CA3AF] mb-1">Username</label>
-                  <div className="relative">
-                    <User className="w-4 h-4 absolute left-3 top-3.5 text-[#6B7280]" />
+                  <div className="relative flex items-center">
+                    <User className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6B7280] pointer-events-none z-10" />
                     <input
                       type="text"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       placeholder="e.g. alex_dev"
-                      className="form-input text-xs pl-9 py-2.5"
+                      style={{ paddingLeft: '2.8rem' }}
+                      className="form-input text-xs py-3 w-full"
                       required
                     />
                   </div>
                 </div>
               )}
 
-              <div>
-                <label className="block text-xs font-bold text-[#9CA3AF] mb-1">Email Address</label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 absolute left-3 top-3.5 text-[#6B7280]" />
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@domain.com"
-                    className="form-input text-xs pl-9 py-2.5"
-                    required
-                  />
-                </div>
-              </div>
-
-              {!isMagicLink && (
+              {!isForgot && (
                 <div>
-                  <label className="block text-xs font-bold text-[#9CA3AF] mb-1">Password</label>
-                  <div className="relative">
-                    <Lock className="w-4 h-4 absolute left-3 top-3.5 text-[#6B7280]" />
+                  <label className="block text-xs font-bold text-[#9CA3AF] mb-1">Email Address</label>
+                  <div className="relative flex items-center">
+                    <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6B7280] pointer-events-none z-10" />
                     <input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="form-input text-xs pl-9 py-2.5"
-                      minLength={6}
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="name@domain.com"
+                      style={{ paddingLeft: '2.8rem' }}
+                      className="form-input text-xs py-3 w-full"
                       required
                     />
                   </div>
                 </div>
+              )}
+
+              {isForgot && (
+                <div>
+                  <label className="block text-xs font-bold text-[#9CA3AF] mb-1">Registered Email</label>
+                  <div className="relative flex items-center">
+                    <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6B7280] pointer-events-none z-10" />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="name@domain.com"
+                      style={{ paddingLeft: '2.8rem' }}
+                      className="form-input text-xs py-3 w-full"
+                      required
+                    />
+                  </div>
+                </div>
+              )}
+
+              {!isMagicLink && !isForgot && (
+                <>
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-bold text-[#9CA3AF]">Password</label>
+                      {!isSignUp && (
+                        <button 
+                          type="button" 
+                          onClick={() => {
+                            setIsForgot(true);
+                            setIsSignUp(false);
+                            setIsMagicLink(false);
+                            setErrorMsg('');
+                            setSuccessMsg('');
+                          }}
+                          className="text-[10px] text-[#00E5FF] hover:underline"
+                        >
+                          Forgot password?
+                        </button>
+                      )}
+                    </div>
+                    <div className="relative flex items-center">
+                      <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6B7280] pointer-events-none z-10" />
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                        style={{ paddingLeft: '2.8rem', paddingRight: '2.8rem' }}
+                        className="form-input text-xs py-3 w-full"
+                        minLength={6}
+                        required
+                      />
+                      <button 
+                        type="button" 
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6B7280] hover:text-white transition-colors"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {isSignUp && (
+                    <div>
+                      <label className="block text-xs font-bold text-[#9CA3AF] mb-1">Confirm Password</label>
+                      <div className="relative flex items-center">
+                        <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6B7280] pointer-events-none z-10" />
+                        <input
+                          type={showConfirmPassword ? 'text' : 'password'}
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          placeholder="••••••••"
+                          style={{ paddingLeft: '2.8rem', paddingRight: '2.8rem' }}
+                          className="form-input text-xs py-3 w-full"
+                          minLength={6}
+                          required
+                        />
+                        <button 
+                          type="button" 
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6B7280] hover:text-white transition-colors"
+                        >
+                          {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
 
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full btn btn-primary text-xs py-3 font-bold flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,229,255,0.3)]"
+                className="w-full btn btn-primary py-3 font-bold flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,229,255,0.3)]"
               >
-                <span>{isLoading ? 'Authenticating...' : isMagicLink ? 'Send Magic Link 📩' : isSignUp ? 'Create Free Account 🚀' : 'Sign In Now 🔑'}</span>
-                <ArrowRight className="w-4 h-4" />
+                {isLoading ? (
+                  <span>Authenticating...</span>
+                ) : (
+                  <span>
+                    {isMagicLink 
+                      ? 'Send Magic Link 📩' 
+                      : isForgot 
+                      ? 'Send Reset Link 📩' 
+                      : isSignUp 
+                      ? 'Create Free Account 🚀' 
+                      : 'Sign In Now 🔑'}
+                  </span>
+                )}
+              </button>
+            </form>
+
+            <div className="flex items-center gap-4 text-xs text-slate-400">
+              <div className="h-px bg-white/10 flex-1" />
+              <span>OR</span>
+              <div className="h-px bg-white/10 flex-1" />
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={() => {
+                  setIsSignUp(!isSignUp);
+                  setIsMagicLink(false);
+                  setIsForgot(false);
+                  setErrorMsg('');
+                  setSuccessMsg('');
+                }}
+                className="w-full bg-[#181818] hover:bg-[#222222] border border-white/10 text-white text-xs font-bold py-3 rounded-xl transition-colors"
+              >
+                {isSignUp ? 'Already have an account? Sign In' : 'New here? Create Free Account'}
               </button>
 
-              <div className="flex items-center justify-between text-xs text-[#9CA3AF] pt-2 border-t border-[#222]">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsSignUp(!isSignUp);
+              <button
+                onClick={() => {
+                  if (isMagicLink || isForgot) {
                     setIsMagicLink(false);
-                  }}
-                  className="hover:text-[#00E5FF] font-semibold"
-                >
-                  {isSignUp ? 'Existing user? Sign In' : "Don't have an account? Sign Up"}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setIsMagicLink(!isMagicLink)}
-                  className="hover:text-[#8B5CF6] font-semibold"
-                >
-                  {isMagicLink ? 'Use Password' : 'Magic Link ✉️'}
-                </button>
-              </div>
-
-            </form>
+                    setIsForgot(false);
+                    setIsSignUp(false);
+                  } else {
+                    setIsMagicLink(true);
+                    setIsSignUp(false);
+                    setIsForgot(false);
+                  }
+                  setErrorMsg('');
+                  setSuccessMsg('');
+                }}
+                className="w-full text-[#9CA3AF] hover:text-white text-xs font-bold py-2 transition-colors flex items-center justify-center gap-2"
+              >
+                {isMagicLink || isForgot ? (
+                  <>
+                    <ArrowRight className="w-3.5 h-3.5 rotate-180" />
+                    <span>Back to Standard Login</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Use Passwordless Magic Link instead</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
 

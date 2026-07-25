@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { UserProfile, NotificationItem } from '../types';
-import { Zap, Flame, Search, Bell, ShieldCheck, User as UserIcon, Plus, CheckCircle2, ChevronDown, LogOut } from 'lucide-react';
+import { Zap, Flame, Search, Bell, ShieldCheck, User as UserIcon, Plus, CheckCircle2, ChevronDown, LogOut, ArrowLeft } from 'lucide-react';
 
 interface NavbarProps {
   user: UserProfile;
@@ -9,6 +9,8 @@ interface NavbarProps {
   notifications: NotificationItem[];
   onOpenNewGoal: () => void;
   onOpenSearch: () => void;
+  canGoBack?: boolean;
+  onGoBack?: () => void;
   onOpenAuth?: () => void;
   onSignOut?: () => void;
 }
@@ -20,11 +22,26 @@ export const Navbar: React.FC<NavbarProps> = ({
   notifications,
   onOpenNewGoal,
   onOpenSearch,
+  canGoBack,
+  onGoBack,
   onOpenAuth,
   onSignOut
 }) => {
   const [showNotifMenu, setShowNotifMenu] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
   const unreadNotifs = notifications.filter(n => !n.read).length;
+
+  // Close notification dropdown on outside click
+  useEffect(() => {
+    if (!showNotifMenu) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setShowNotifMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showNotifMenu]);
 
   const mainNavItems = [
     { id: 'dashboard', label: 'Dashboard' },
@@ -46,6 +63,17 @@ export const Navbar: React.FC<NavbarProps> = ({
         
         {/* Left: Brand & Main Navigation */}
         <div className="flex items-center gap-6 overflow-hidden">
+          {/* Back Button */}
+          {canGoBack && (
+            <button
+              onClick={onGoBack}
+              className="p-1.5 -ml-2 rounded-xl text-[#9CA3AF] hover:text-white hover:bg-white/10 transition-colors"
+              title="Go Back"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+          )}
+
           {/* Brand Logo */}
           <div 
             onClick={() => setActiveView('dashboard')}
@@ -118,7 +146,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
 
           {/* Notifications */}
-          <div className="relative">
+          <div className="relative" ref={notifRef}>
             <button
               onClick={() => setShowNotifMenu(!showNotifMenu)}
               className="p-1.5 rounded-xl bg-[#111111] border border-[#222] text-[#9CA3AF] hover:text-white relative transition-colors"

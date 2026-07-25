@@ -71,6 +71,79 @@ export const GroupsView: React.FC<GroupsViewProps> = ({
     setJoinCodeInput('');
   };
 
+  // Empty state — no groups
+  if (groups.length === 0) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <div className="glass-card p-12 text-center space-y-5">
+          <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-[#00E5FF]/10 to-[#8B5CF6]/10 flex items-center justify-center border border-white/10">
+            <Users className="w-10 h-10 text-[#00E5FF]" />
+          </div>
+          <h3 className="font-display font-extrabold text-xl text-white">No Squads Yet</h3>
+          <p className="text-sm text-[#9CA3AF] max-w-md mx-auto">
+            Create your first accountability squad or join an existing one with an invite code. Each squad tracks its own XP separately!
+          </p>
+          <div className="flex items-center justify-center gap-3">
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="btn btn-primary text-xs py-2.5 px-5 flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" /> Create Squad
+            </button>
+            <button
+              onClick={() => setShowJoinModal(true)}
+              className="btn btn-secondary text-xs py-2.5 px-5 flex items-center gap-2"
+            >
+              <Key className="w-4 h-4 text-[#8B5CF6]" /> Join with Code
+            </button>
+          </div>
+        </div>
+
+        {/* Create Modal */}
+        {showCreateModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <div className="bg-[#111111] border border-[#222] rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+              <h3 className="font-display font-extrabold text-lg text-white">Create Private Squad</h3>
+              <form onSubmit={handleCreateSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-[#9CA3AF] mb-1">Squad Name *</label>
+                  <input type="text" placeholder="e.g. 100 Days Coding Titans" value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} className="form-input" required />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-[#9CA3AF] mb-1">Description</label>
+                  <textarea placeholder="Daily rules and expectations..." value={newGroupDesc} onChange={(e) => setNewGroupDesc(e.target.value)} className="form-input min-h-[70px]" />
+                </div>
+                <div className="flex items-center justify-between pt-2">
+                  <button type="button" onClick={() => setShowCreateModal(false)} className="btn btn-secondary text-xs">Cancel</button>
+                  <button type="submit" className="btn btn-primary text-xs">Create Squad 🚀</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Join Modal */}
+        {showJoinModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <div className="bg-[#111111] border border-[#222] rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+              <h3 className="font-display font-extrabold text-lg text-white">Join Squad with Invite Code</h3>
+              <form onSubmit={handleJoinSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-[#9CA3AF] mb-1">Enter Invite Code</label>
+                  <input type="text" placeholder="e.g. TITAN-5921" value={joinCodeInput} onChange={(e) => setJoinCodeInput(e.target.value)} className="form-input font-mono uppercase" required />
+                </div>
+                <div className="flex items-center justify-between pt-2">
+                  <button type="button" onClick={() => setShowJoinModal(false)} className="btn btn-secondary text-xs">Cancel</button>
+                  <button type="submit" className="btn btn-primary text-xs">Join Squad</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-fade-in">
       
@@ -87,6 +160,30 @@ export const GroupsView: React.FC<GroupsViewProps> = ({
           <p className="text-xs text-[#9CA3AF] mt-1 max-w-xl">
             {currentGroup?.description}
           </p>
+
+          {/* Group-Specific XP & Join Date */}
+          {currentGroup?.memberData?.[currentUser.id] && (
+            <div className="flex items-center gap-4 mt-3 flex-wrap">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#00E5FF]/10 border border-[#00E5FF]/20">
+                <Zap className="w-3.5 h-3.5 text-[#00E5FF]" />
+                <span className="text-xs font-bold text-[#00E5FF]">
+                  {currentGroup.memberData[currentUser.id].xp} Group XP
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#8B5CF6]/10 border border-[#8B5CF6]/20">
+                <Sparkles className="w-3.5 h-3.5 text-[#8B5CF6]" />
+                <span className="text-xs font-bold text-[#8B5CF6]">
+                  Joined {new Date(currentGroup.memberData[currentUser.id].joinedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#F59E0B]/10 border border-[#F59E0B]/20">
+                <Award className="w-3.5 h-3.5 text-[#F59E0B]" />
+                <span className="text-xs font-bold text-[#F59E0B]">
+                  {currentUser.xp} Total XP (All-Time)
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Action Buttons */}

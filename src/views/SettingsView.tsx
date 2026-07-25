@@ -281,6 +281,60 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
       )}
 
+      {/* TAB 4: PRIVACY & DATA */}
+      {activeTab === 'privacy' && (
+        <div className="glass-card p-6 space-y-6">
+          <h3 className="font-bold text-base text-white flex items-center gap-2">
+            <Shield className="w-5 h-5 text-[#00E5FF]" /> Privacy & Data Management
+          </h3>
+          <p className="text-xs text-[#9CA3AF]">
+            Your data is stored locally in your browser by default. You have full control over your information.
+          </p>
+
+          <div className="space-y-4 pt-2 border-t border-[#222]">
+            <div className="flex items-center justify-between p-4 rounded-xl bg-[#171717] border border-[#262626]">
+              <div>
+                <h5 className="font-bold text-sm text-white">Export Local Data</h5>
+                <p className="text-xs text-[#9CA3AF] mt-1">Download all your goals, activities, and profile data as a JSON file.</p>
+              </div>
+              <button 
+                onClick={() => {
+                  const data = JSON.stringify(localStorage);
+                  const blob = new Blob([data], { type: 'application/json' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `grindtrack_backup_${new Date().toISOString().split('T')[0]}.json`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                className="btn btn-secondary text-xs py-2 px-4 flex items-center gap-2"
+              >
+                <Download className="w-4 h-4 text-[#00E5FF]" /> Backup Data
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between p-4 rounded-xl bg-[#EF4444]/10 border border-[#EF4444]/30">
+              <div>
+                <h5 className="font-bold text-sm text-[#EF4444]">Danger Zone: Wipe Data</h5>
+                <p className="text-xs text-[#EF4444]/70 mt-1">Permanently delete all local data. This cannot be undone.</p>
+              </div>
+              <button 
+                onClick={() => {
+                  if (confirm('Are you absolutely sure? This will delete all your goals, profile, and progress.')) {
+                    localStorage.clear();
+                    window.location.reload();
+                  }
+                }}
+                className="px-4 py-2 rounded-xl bg-[#EF4444] text-white text-xs font-bold hover:bg-[#DC2626] transition-colors flex items-center gap-2 shadow-[0_0_15px_rgba(239,68,68,0.3)]"
+              >
+                <AlertTriangle className="w-4 h-4" /> Delete Everything
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
