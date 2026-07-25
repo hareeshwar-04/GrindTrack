@@ -19,6 +19,11 @@ export const GroupDashboardView: React.FC<GroupDashboardViewProps> = ({ groupId,
   const [copied, setCopied] = useState(false);
   const [drawerMember, setDrawerMember] = useState<GroupMember | null>(null);
 
+  // Loading States for Actions
+  const [isLeaving, setIsLeaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isKicking, setIsKicking] = useState<string | null>(null);
+
   const fetchGroupData = async () => {
     setIsLoading(true);
     try {
@@ -164,15 +169,23 @@ export const GroupDashboardView: React.FC<GroupDashboardViewProps> = ({ groupId,
                 </div>
                 {isOwner && member.id !== currentUser.id && (
                   <button 
-                    onClick={(e) => {
+                    onClick={async (e) => {
                       e.stopPropagation();
+                      if (isKicking) return;
                       if (window.confirm('Kick member?')) {
-                        DatabaseService.kickMember(group.id, member.id).then(fetchGroupData);
+                        setIsKicking(member.id);
+                        try {
+                          await DatabaseService.kickMember(group.id, member.id);
+                          await fetchGroupData();
+                        } finally {
+                          setIsKicking(null);
+                        }
                       }
                     }}
-                    className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg"
+                    disabled={isKicking === member.id}
+                    className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg disabled:opacity-50 flex items-center gap-2"
                   >
-                    Kick
+                    {isKicking === member.id ? <div className="w-3 h-3 border-2 border-red-500 border-t-transparent rounded-full animate-spin" /> : 'Kick'}
                   </button>
                 )}
               </div>
@@ -193,14 +206,22 @@ export const GroupDashboardView: React.FC<GroupDashboardViewProps> = ({ groupId,
               <p className="text-xs text-[#9CA3AF] mb-4">Leaving this group will permanently delete your group XP and contribution history.</p>
               <button 
                 onClick={async () => {
+                  if (isLeaving) return;
                   if (window.confirm('Are you sure you want to leave this group?')) {
-                    await DatabaseService.kickMember(group.id, currentUser.id);
-                    onLeaveGroup();
+                    setIsLeaving(true);
+                    try {
+                      await DatabaseService.kickMember(group.id, currentUser.id);
+                      onLeaveGroup();
+                    } catch (e) {
+                      setIsLeaving(false);
+                    }
                   }
                 }}
-                className="btn py-2 px-4 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white"
+                disabled={isLeaving}
+                className="btn py-2 px-4 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white disabled:opacity-50 flex items-center gap-2 w-fit"
               >
-                Leave Group
+                {isLeaving && <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />}
+                {isLeaving ? 'Leaving...' : 'Leave Group'}
               </button>
             </div>
             
@@ -210,14 +231,22 @@ export const GroupDashboardView: React.FC<GroupDashboardViewProps> = ({ groupId,
                 <p className="text-xs text-[#9CA3AF] mb-4">This action cannot be undone.</p>
                 <button 
                   onClick={async () => {
+                    if (isDeleting) return;
                     if (window.confirm('Are you sure you want to completely DELETE this group?')) {
-                      // Note: We need a deleteSquad method in db.ts
-                      alert('Delete functionality coming soon via backend update.');
+                      setIsDeleting(true);
+                      try {
+                        await DatabaseService.deleteSquad(group.id);
+                        onLeaveGroup();
+                      } catch (e) {
+                        setIsDeleting(false);
+                      }
                     }
                   }}
-                  className="btn py-2 px-4 bg-red-500 border border-red-500 text-white hover:bg-red-600"
+                  disabled={isDeleting}
+                  className="btn py-2 px-4 bg-red-500 border border-red-500 text-white hover:bg-red-600 disabled:opacity-50 flex items-center gap-2 w-fit"
                 >
-                  Delete Group
+                  {isDeleting && <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />}
+                  {isDeleting ? 'Deleting...' : 'Delete Group'}
                 </button>
               </div>
             )}

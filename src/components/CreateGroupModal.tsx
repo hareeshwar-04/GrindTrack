@@ -5,7 +5,7 @@ import { Users, X, Sparkles, Copy, Check, Shield, Flame } from 'lucide-react';
 interface CreateGroupModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreateGroup: (group: Partial<Group>) => void;
+  onCreateGroup: (name: string, description: string, isPrivate: boolean, icon: string) => Promise<void>;
 }
 
 export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
@@ -19,29 +19,27 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
   const [icon, setIcon] = useState('⚡');
   const [copiedCode, setCopiedCode] = useState(false);
 
-  // Auto-generated 6-character invite code
+  const [isCreating, setIsCreating] = useState(false);
+
+  // Auto-generated 6-character invite code (for visual purposes, DB will overwrite)
   const [inviteCode] = useState(() => 'GT-' + Math.random().toString(36).substring(2, 8).toUpperCase());
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim() || isCreating) return;
 
-    onCreateGroup({
-      id: 'grp_' + Date.now(),
-      name: name.trim(),
-      description: description.trim() || 'Daily accountability squad',
-      icon,
-      code: inviteCode,
-      isPrivate: true,
-      ownerId: 'u_current',
-      adminIds: ['u_current'],
-      memberIds: ['u_current'],
-      createdAt: new Date().toISOString()
-    });
-
-    onClose();
+    setIsCreating(true);
+    try {
+      await onCreateGroup(name.trim(), description.trim() || 'Daily accountability squad', true, icon);
+      onClose();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to create group');
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const shareLink = `${window.location.origin}/?join=${inviteCode}`;
@@ -149,11 +147,12 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
 
           {/* Submit */}
           <div className="pt-2 flex justify-end gap-3 border-t border-[#222]">
-            <button type="button" onClick={onClose} className="btn btn-secondary text-xs">
+            <button type="button" onClick={onClose} disabled={isCreating} className="btn btn-secondary text-xs disabled:opacity-50">
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary text-xs py-2 px-5">
-              Launch Squad 🚀
+            <button type="submit" disabled={isCreating} className="btn btn-primary text-xs py-2 px-5 disabled:opacity-50 flex items-center gap-2">
+              {isCreating ? <div className="w-3 h-3 border-2 border-black border-t-transparent rounded-full animate-spin" /> : null}
+              {isCreating ? 'Launching...' : 'Launch Squad 🚀'}
             </button>
           </div>
 

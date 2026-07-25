@@ -6,9 +6,10 @@ interface MyGroupsViewProps {
   groups: Group[];
   onOpenGroup: (groupId: string) => void;
   onNavigateDiscover: () => void;
+  onOpenCreateModal: () => void;
 }
 
-export const MyGroupsView: React.FC<MyGroupsViewProps> = ({ groups, onOpenGroup, onNavigateDiscover }) => {
+export const MyGroupsView: React.FC<MyGroupsViewProps> = ({ groups, onOpenGroup, onNavigateDiscover, onOpenCreateModal }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredGroups = groups.filter(g => g.name.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -95,6 +96,12 @@ export const MyGroupsView: React.FC<MyGroupsViewProps> = ({ groups, onOpenGroup,
           className="btn btn-primary flex-1 flex items-center justify-center gap-2 py-3"
         >
           <Compass className="w-5 h-5" /> Discover New Groups
+        </button>
+        <button 
+          onClick={onOpenCreateModal}
+          className="btn btn-secondary flex-1 flex items-center justify-center gap-2 py-3 border border-[#333] hover:border-[#8B5CF6]/50"
+        >
+          <Plus className="w-5 h-5" /> Create a Squad
         </button>
       </div>
 

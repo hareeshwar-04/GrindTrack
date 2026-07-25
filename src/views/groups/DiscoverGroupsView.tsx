@@ -20,6 +20,7 @@ export const DiscoverGroupsView: React.FC<DiscoverGroupsViewProps> = ({
   const [isSearching, setIsSearching] = useState(false);
   const [previewData, setPreviewData] = useState<any | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [isJoining, setIsJoining] = useState(false);
   const [joinError, setJoinError] = useState('');
 
   const handleSearch = async (query: string) => {
@@ -72,7 +73,9 @@ export const DiscoverGroupsView: React.FC<DiscoverGroupsViewProps> = ({
   };
 
   const handleJoin = async () => {
-    if (!previewData) return;
+    if (!previewData || isJoining) return;
+    setIsJoining(true);
+    setJoinError('');
     try {
       const joinedSquad = await DatabaseService.joinSquadWithCode(currentUser.id, previewData.code || searchQuery.toUpperCase());
       if (joinedSquad) {
@@ -80,6 +83,7 @@ export const DiscoverGroupsView: React.FC<DiscoverGroupsViewProps> = ({
       }
     } catch (err: any) {
       setJoinError(err.message);
+      setIsJoining(false);
     }
   };
 
@@ -125,8 +129,19 @@ export const DiscoverGroupsView: React.FC<DiscoverGroupsViewProps> = ({
                 </button>
               </>
             ) : (
-              <button onClick={handleJoin} className="btn btn-primary w-full py-3 text-sm flex justify-center items-center gap-2">
-                Join Group <ArrowRight className="w-4 h-4" />
+              <button 
+                onClick={handleJoin} 
+                disabled={isJoining}
+                className="btn btn-primary w-full py-3 text-sm flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isJoining ? (
+                  <span className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                    Joining...
+                  </span>
+                ) : (
+                  <>Join Group <ArrowRight className="w-4 h-4" /></>
+                )}
               </button>
             )}
             

@@ -4,6 +4,7 @@ import { DatabaseService } from '../../services/db';
 import { MyGroupsView } from './MyGroupsView';
 import { DiscoverGroupsView } from './DiscoverGroupsView';
 import { GroupDashboardView } from './GroupDashboardView';
+import { CreateGroupModal } from '../../components/CreateGroupModal';
 import { ArrowLeft } from 'lucide-react';
 
 interface GroupsLayoutProps {
@@ -20,6 +21,7 @@ export const GroupsLayout: React.FC<GroupsLayoutProps> = ({ currentUser, initial
   // Data State
   const [joinedGroups, setJoinedGroups] = useState<Group[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const fetchMyGroups = async () => {
     setIsLoading(true);
@@ -62,6 +64,15 @@ export const GroupsLayout: React.FC<GroupsLayoutProps> = ({ currentUser, initial
     fetchMyGroups(); // Refresh in case they left a group
   };
 
+  const handleCreateGroup = async (name: string, description: string, isPrivate: boolean, icon: string) => {
+    const newSquad = await DatabaseService.createSquad(currentUser.id, name, description, isPrivate, icon);
+    if (newSquad) {
+      setIsCreateModalOpen(false);
+      await fetchMyGroups();
+      handleOpenGroup(newSquad.id);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -87,6 +98,7 @@ export const GroupsLayout: React.FC<GroupsLayoutProps> = ({ currentUser, initial
           groups={joinedGroups} 
           onOpenGroup={handleOpenGroup}
           onNavigateDiscover={() => setViewState('discover')}
+          onOpenCreateModal={() => setIsCreateModalOpen(true)}
         />
       )}
 
@@ -110,6 +122,12 @@ export const GroupsLayout: React.FC<GroupsLayoutProps> = ({ currentUser, initial
           onLeaveGroup={handleBackToGroups}
         />
       )}
+
+      <CreateGroupModal 
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onCreateGroup={handleCreateGroup}
+      />
     </div>
   );
 };

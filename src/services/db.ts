@@ -181,12 +181,12 @@ export class DatabaseService {
     });
   }
 
-  static async createSquad(userId: string, name: string, description: string, isPrivate: boolean) {
+  static async createSquad(userId: string, name: string, description: string, isPrivate: boolean, icon: string) {
     if (!supabase) return null;
     const code = 'SQUAD-' + Math.floor(1000 + Math.random() * 9000);
     
     const { data: squad, error } = await supabase.from('squads').insert({
-      name, description, is_private: isPrivate, code, owner_id: userId
+      name, description, is_private: isPrivate, code, owner_id: userId, icon
     }).select().single();
     
     if (error || !squad) throw error;
@@ -219,6 +219,11 @@ export class DatabaseService {
     }
     
     return squad;
+  }
+
+  static async deleteSquad(squadId: string) {
+    if (!supabase) return;
+    await supabase.from('squads').delete().eq('id', squadId);
   }
 
   // ─── CLAN SYSTEM (ADMIN & PREVIEWS) ───────────────────────
