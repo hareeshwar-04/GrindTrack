@@ -9,7 +9,7 @@ import { ProfileModal } from './components/ProfileModal';
 import { AuthModal } from './components/AuthModal';
 
 import { DashboardView } from './views/DashboardView';
-import { GoalsView } from './views/GoalsView';
+import { MissionControlView } from './views/goals/MissionControlView';
 import { GroupsLayout } from './views/groups/GroupsLayout';
 import { ProfileView } from './views/ProfileView';
 import { LeaderboardView } from './views/LeaderboardView';
@@ -752,21 +752,20 @@ export function App() {
         )}
 
         {activeView === 'goals' && (
-          <GoalsView
+          <MissionControlView
+            user={user}
             goals={goals}
+            groups={groups}
             onOpenNewGoal={() => {
               setEditingGoal(null);
               setIsGoalModalOpen(true);
             }}
-            onOpenCSVImport={() => setIsCSVModalOpen(true)}
             onUpdateGoalStatus={handleUpdateGoalStatus}
-            onToggleSubtask={handleToggleSubtask}
-            onDeleteGoal={handleDeleteGoal}
-            onRollOverGoal={handleRollOverGoal}
             onEditGoal={(g) => {
               setEditingGoal(g);
               setIsGoalModalOpen(true);
             }}
+            onDeleteGoal={handleDeleteGoal}
           />
         )}
 
