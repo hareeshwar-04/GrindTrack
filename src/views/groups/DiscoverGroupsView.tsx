@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { UserProfile } from '../../types';
+import { UserProfile, Group } from '../../types';
 import { DatabaseService } from '../../services/db';
-import { Search, Users, Shield, ArrowRight, Compass, Sparkles } from 'lucide-react';
+import { Search, Users, Shield, ArrowRight, Compass, Sparkles, CheckCircle2 } from 'lucide-react';
 
 interface DiscoverGroupsViewProps {
   currentUser: UserProfile;
   initialInviteCode?: string;
+  joinedGroups: Group[];
   onBack: () => void;
   onJoinedGroup: (groupId: string) => void;
+  onOpenGroup: (groupId: string) => void;
 }
 
-export const DiscoverGroupsView: React.FC<DiscoverGroupsViewProps> = ({ currentUser, initialInviteCode, onBack, onJoinedGroup }) => {
+export const DiscoverGroupsView: React.FC<DiscoverGroupsViewProps> = ({ 
+  currentUser, initialInviteCode, joinedGroups, onBack, onJoinedGroup, onOpenGroup 
+}) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -43,12 +47,14 @@ export const DiscoverGroupsView: React.FC<DiscoverGroupsViewProps> = ({ currentU
   };
 
   useEffect(() => {
+    // Always load default public squads in the background so the list isn't empty on back
+    handleSearch('');
+    
     if (initialInviteCode) {
       setSearchQuery(initialInviteCode);
       handleSearch(initialInviteCode);
-    } else {
-      // Load default public squads
-      handleSearch('');
+      // Clear URL parameter so it doesn't trigger on refresh
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, [initialInviteCode]);
 
@@ -78,9 +84,12 @@ export const DiscoverGroupsView: React.FC<DiscoverGroupsViewProps> = ({ currentU
   };
 
   if (previewData) {
+    const alreadyMemberGroup = joinedGroups.find(g => g.code === (previewData.code || searchQuery.toUpperCase()));
+    const isAlreadyMember = !!alreadyMemberGroup;
+
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="glass-card w-full max-w-md p-6 space-y-6">
+        <div className="glass-card w-full max-w-md p-6 space-y-6 animate-fade-in">
           <div className="text-center space-y-2">
             <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-[#00E5FF]/20 to-[#8B5CF6]/20 flex items-center justify-center border border-[#00E5FF]/30 shadow-[0_0_20px_rgba(0,229,255,0.2)] text-4xl">
               {previewData.icon}
@@ -106,10 +115,25 @@ export const DiscoverGroupsView: React.FC<DiscoverGroupsViewProps> = ({ currentU
           )}
 
           <div className="flex flex-col gap-3 pt-4">
-            <button onClick={handleJoin} className="btn btn-primary w-full py-3 text-sm">
-              Accept Invite
-            </button>
-            <button onClick={() => setPreviewData(null)} className="btn btn-secondary w-full py-3 text-sm">
+            {isAlreadyMember ? (
+              <>
+                <div className="flex items-center justify-center gap-2 text-[#10B981] font-bold text-sm mb-2">
+                  <CheckCircle2 className="w-5 h-5" /> You're already a member
+                </div>
+                <button onClick={() => onOpenGroup(alreadyMemberGroup.id)} className="btn btn-primary w-full py-3 text-sm">
+                  Open Group Dashboard
+                </button>
+              </>
+            ) : (
+              <button onClick={handleJoin} className="btn btn-primary w-full py-3 text-sm flex justify-center items-center gap-2">
+                Join Group <ArrowRight className="w-4 h-4" />
+              </button>
+            )}
+            
+            <button onClick={() => {
+              setPreviewData(null);
+              setSearchQuery('');
+            }} className="btn btn-secondary w-full py-3 text-sm">
               Back to Discover
             </button>
           </div>

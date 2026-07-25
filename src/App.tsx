@@ -244,15 +244,6 @@ export function App() {
     const joinCode = params.get('join');
     if (joinCode) {
       handleSetActiveView('groups');
-      const newNotif: NotificationItem = {
-        id: 'n_' + Date.now(),
-        title: 'Squad Invite Received 🚀',
-        message: `Click Join Squad and enter code: ${joinCode.toUpperCase()}`,
-        timestamp: 'Just now',
-        read: false,
-        type: 'system'
-      };
-      setNotifications(prev => [newNotif, ...prev]);
     }
   }, [authState]);
 

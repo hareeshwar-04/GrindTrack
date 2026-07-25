@@ -26,7 +26,17 @@ export const GroupsLayout: React.FC<GroupsLayoutProps> = ({ currentUser, initial
     try {
       const groups = await DatabaseService.getUserSquads(currentUser.id);
       setJoinedGroups(groups);
-      if (groups.length === 0 && viewState === 'my-groups' && !initialInviteCode) {
+      
+      if (initialInviteCode) {
+        const alreadyMember = groups.find(g => g.code === initialInviteCode.toUpperCase());
+        if (alreadyMember) {
+          // Clear URL parameter so it doesn't trigger on refresh
+          window.history.replaceState({}, document.title, window.location.pathname);
+          handleOpenGroup(alreadyMember.id);
+        } else {
+          setViewState('discover');
+        }
+      } else if (groups.length === 0 && viewState === 'my-groups') {
         setViewState('discover');
       }
     } catch (err) {
@@ -38,13 +48,7 @@ export const GroupsLayout: React.FC<GroupsLayoutProps> = ({ currentUser, initial
 
   useEffect(() => {
     fetchMyGroups();
-  }, [currentUser.id]);
-
-  useEffect(() => {
-    if (initialInviteCode) {
-      setViewState('discover');
-    }
-  }, [initialInviteCode]);
+  }, [currentUser.id, initialInviteCode]);
 
   // Routing
   const handleOpenGroup = (groupId: string) => {
@@ -90,10 +94,12 @@ export const GroupsLayout: React.FC<GroupsLayoutProps> = ({ currentUser, initial
         <DiscoverGroupsView 
           currentUser={currentUser}
           initialInviteCode={initialInviteCode}
+          joinedGroups={joinedGroups}
           onBack={() => setViewState('my-groups')}
           onJoinedGroup={(groupId) => {
             fetchMyGroups().then(() => handleOpenGroup(groupId));
           }}
+          onOpenGroup={handleOpenGroup}
         />
       )}
 
