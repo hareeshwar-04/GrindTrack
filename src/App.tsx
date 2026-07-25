@@ -8,7 +8,7 @@ import { SearchModal } from './components/SearchModal';
 import { ProfileModal } from './components/ProfileModal';
 import { AuthModal } from './components/AuthModal';
 
-import { DashboardView } from './views/DashboardView';
+import { MissionDashboardView } from './views/dashboard/MissionDashboardView';
 import { MissionControlView } from './views/goals/MissionControlView';
 import { GroupsLayout } from './views/groups/GroupsLayout';
 import { ProfileView } from './views/ProfileView';
@@ -727,27 +727,23 @@ export function App() {
         />
 
         {activeView === 'dashboard' && (
-          <DashboardView
+          <MissionDashboardView
             user={user}
             goals={goals}
+            activities={activities}
+            groups={groups}
+            groupMembers={groupMembers}
             onUpdateGoalStatus={handleUpdateGoalStatus}
-            onToggleSubtask={handleToggleSubtask}
-            onDeleteGoal={handleDeleteGoal}
-            onRollOverGoal={handleRollOverGoal}
             onEditGoal={(g) => {
               setEditingGoal(g);
               setIsGoalModalOpen(true);
             }}
-            activities={activities}
-            groups={groups}
-            groupMembers={groupMembers}
+            onDeleteGoal={handleDeleteGoal}
             onOpenNewGoal={() => {
               setEditingGoal(null);
               setIsGoalModalOpen(true);
             }}
-            onOpenCSVImport={() => setIsCSVModalOpen(true)}
             onNavigateView={handleSetActiveView}
-            onQuickAddGoal={handleQuickAddGoal}
           />
         )}
 
