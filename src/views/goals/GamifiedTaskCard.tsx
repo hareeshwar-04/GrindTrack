@@ -25,6 +25,19 @@ export const GamifiedTaskCard: React.FC<GamifiedTaskCardProps> = ({ goal, user, 
   // Find which groups this goal is explicitly linked to
   const activeGroups = groups.filter(g => (goal.linkedGroups || []).includes(g.id));
 
+  const formatTimeBlock = () => {
+    if (goal.startTime && goal.endTime) {
+      const formatTime = (t: string) => {
+        const [h, m] = t.split(':').map(Number);
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const hr = h % 12 || 12;
+        return `${hr}:${m.toString().padStart(2, '0')} ${ampm}`;
+      };
+      return `${formatTime(goal.startTime)} - ${formatTime(goal.endTime)} (${goal.estimatedMinutes}m)`;
+    }
+    return `Est. ${goal.estimatedMinutes} mins`;
+  };
+
   return (
     <div 
       className={`glass-card glass-card-interactive overflow-hidden transition-all duration-300 ${isCompleted ? 'opacity-70 grayscale-[0.3]' : ''}`}
@@ -63,7 +76,7 @@ export const GamifiedTaskCard: React.FC<GamifiedTaskCardProps> = ({ goal, user, 
           <div className="flex flex-wrap items-center gap-3 mt-2 text-xs font-bold">
             <div className="flex items-center gap-1 text-[#F59E0B]">
               <Clock className="w-3.5 h-3.5" /> 
-              {isCompleted ? `${goal.actualMinutes} mins logged` : `Est. ${goal.estimatedMinutes} mins`}
+              {isCompleted ? `${goal.actualMinutes} mins logged` : formatTimeBlock()}
             </div>
             {isCompleted && goal.earnedXP && (
               <div className="flex items-center gap-1 text-[#10B981]">

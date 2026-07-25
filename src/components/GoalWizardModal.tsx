@@ -23,7 +23,8 @@ export const GoalWizardModal: React.FC<GoalWizardModalProps> = ({ isOpen, onClos
   const [step, setStep] = useState(1);
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<Category>('Study');
-  const [estimatedMinutes, setEstimatedMinutes] = useState(60);
+  const [startTime, setStartTime] = useState('09:00');
+  const [endTime, setEndTime] = useState('10:00');
   const [targetDay, setTargetDay] = useState<TargetDay>('today');
   const [linkedGroups, setLinkedGroups] = useState<string[]>([]);
   
@@ -37,7 +38,20 @@ export const GoalWizardModal: React.FC<GoalWizardModalProps> = ({ isOpen, onClos
       setStep(1);
       setTitle('');
       setCategory('Study');
-      setEstimatedMinutes(60);
+      
+      // Default to next nearest hour
+      const now = new Date();
+      now.setHours(now.getHours() + 1);
+      now.setMinutes(0);
+      const sh = now.getHours().toString().padStart(2, '0');
+      const sm = now.getMinutes().toString().padStart(2, '0');
+      setStartTime(`${sh}:${sm}`);
+      
+      now.setHours(now.getHours() + 1);
+      const eh = now.getHours().toString().padStart(2, '0');
+      const em = now.getMinutes().toString().padStart(2, '0');
+      setEndTime(`${eh}:${em}`);
+
       setTargetDay('today');
       setLinkedGroups(groups.map(g => g.id)); // Auto-check all joined groups by default
       setPriority('medium');
@@ -55,13 +69,24 @@ export const GoalWizardModal: React.FC<GoalWizardModalProps> = ({ isOpen, onClos
     if (step < 4) setStep(step + 1);
   };
 
+  const calculateMinutes = (start: string, end: string) => {
+    if (!start || !end) return 60;
+    const [sh, sm] = start.split(':').map(Number);
+    const [eh, em] = end.split(':').map(Number);
+    let diff = (eh * 60 + em) - (sh * 60 + sm);
+    if (diff < 0) diff += 24 * 60;
+    return diff;
+  };
+
   const handleSave = () => {
     onSave({
       title,
       description,
       category,
       deadline: '23:59', // Simplified
-      estimatedMinutes,
+      startTime,
+      endTime,
+      estimatedMinutes: calculateMinutes(startTime, endTime),
       difficulty: 'medium', // Legacy fallback, no longer drives XP
       colorLabel: '#8B5CF6',
       tags: [],
@@ -129,7 +154,7 @@ export const GoalWizardModal: React.FC<GoalWizardModalProps> = ({ isOpen, onClos
                       onClick={() => {
                         if (!title) setTitle(temp.label);
                         setCategory(temp.category);
-                        setEstimatedMinutes(temp.defaultMins);
+                        // Optional: Could adjust end time based on temp.defaultMins here, but for simplicity we let user pick explicitly in step 2.
                       }}
                       className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
                         category === temp.category && (title === temp.label || !title)
@@ -151,24 +176,35 @@ export const GoalWizardModal: React.FC<GoalWizardModalProps> = ({ isOpen, onClos
             <div className="space-y-6 animate-fade-in">
               <div className="text-center space-y-2 mb-8">
                 <Clock className="w-12 h-12 text-[#F59E0B] mx-auto opacity-80" />
-                <h3 className="text-xl font-bold text-white">How long do you plan to focus?</h3>
-                <p className="text-sm text-[#9CA3AF]">This is an estimate. Actual XP is awarded based on verified focus time after completion.</p>
+                <h3 className="text-xl font-bold text-white">When are you scheduling this?</h3>
+                <p className="text-sm text-[#9CA3AF]">Pick a specific time block. Actual XP is based on verified focus time later.</p>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
-                {DURATIONS.map(mins => (
-                  <button
-                    key={mins}
-                    onClick={() => setEstimatedMinutes(mins)}
-                    className={`py-3 rounded-xl border font-bold transition-all ${
-                      estimatedMinutes === mins
-                        ? 'bg-[#F59E0B]/20 border-[#F59E0B] text-[#F59E0B] shadow-[0_0_15px_rgba(245,158,11,0.2)]'
-                        : 'bg-[#1a1a1a] border-[#333] text-[#9CA3AF] hover:border-[#555] hover:text-white'
-                    }`}
-                  >
-                    {mins >= 60 ? (mins % 60 === 0 ? `${mins/60} hr` : `${Math.floor(mins/60)}h ${mins%60}m`) : `${mins} mins`}
-                  </button>
-                ))}
+              <div className="flex items-center gap-4">
+                <div className="flex-1 space-y-2">
+                  <label className="text-xs font-bold text-[#9CA3AF] uppercase">Start Time</label>
+                  <input
+                    type="time"
+                    value={startTime}
+                    onChange={e => setStartTime(e.target.value)}
+                    className="w-full bg-[#1a1a1a] border border-[#333] focus:border-[#F59E0B] rounded-xl px-4 py-3 text-white font-bold text-lg outline-none transition-colors"
+                  />
+                </div>
+                
+                <div className="flex-1 space-y-2">
+                  <label className="text-xs font-bold text-[#9CA3AF] uppercase">End Time</label>
+                  <input
+                    type="time"
+                    value={endTime}
+                    onChange={e => setEndTime(e.target.value)}
+                    className="w-full bg-[#1a1a1a] border border-[#333] focus:border-[#F59E0B] rounded-xl px-4 py-3 text-white font-bold text-lg outline-none transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-6 p-4 rounded-xl bg-[#F59E0B]/10 border border-[#F59E0B]/20 flex items-center justify-between">
+                <span className="text-sm font-bold text-[#F59E0B]">Expected Duration:</span>
+                <span className="text-lg font-extrabold text-[#F59E0B]">{calculateMinutes(startTime, endTime)} mins</span>
               </div>
             </div>
           )}

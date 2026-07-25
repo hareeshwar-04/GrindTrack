@@ -15,6 +15,8 @@ export interface Goal {
   description: string;
   category: Category;
   deadline: string; // e.g. "22:00"
+  startTime?: string;
+  endTime?: string;
   estimatedMinutes: number;
   difficulty: Difficulty;
   colorLabel: string;
