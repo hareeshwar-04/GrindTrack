@@ -258,7 +258,7 @@ export const GroupsView: React.FC<GroupsViewProps> = ({
 
       {/* Member Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {members.map(member => (
+        {members.filter(m => currentGroup?.memberIds.includes(m.id)).map(member => (
           <div
             key={member.id}
             onClick={() => onSelectMemberProfile(member)}

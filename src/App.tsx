@@ -119,13 +119,17 @@ export function App() {
     const completedToday = todayGoals.filter(g => g.status === 'completed').length;
     const todayPct = todayGoals.length > 0 ? Math.round((completedToday / todayGoals.length) * 100) : 0;
     
-    setGroupMembers([{
+    const userAsMember = {
       ...loadedUser,
       todayPercentage: todayPct,
       weeklyPercentage: loadedUser.consistencyRate,
       monthlyPercentage: loadedUser.successRate,
       currentGoalCount: todayGoals.length
-    }]);
+    };
+    
+    // Simulate active multiplayer environment by generating rivals on load
+    const rivals = StoreService.generateRivals(loadedUser.level || 1, 6);
+    setGroupMembers([userAsMember, ...rivals]);
     
     handleSetActiveView('dashboard');
     setVerifyReason(reason || 'signin');
@@ -746,7 +750,16 @@ export function App() {
                 StoreService.saveGroups(updatedGroups, user.email);
                 showToast(`Joined squad "${groups[matchedIdx].name}" successfully! Your XP in this squad starts from 0.`, 'success');
               } else {
-                showToast('Invalid Invite Code!', 'error');
+                // Simulated Multiplayer: Generate a dynamic squad on the fly!
+                const { group: mockGroup, members: mockMembers } = StoreService.generateMockSquad(code, user.id);
+                const updatedGroups = [...groups, mockGroup];
+                setGroups(updatedGroups);
+                StoreService.saveGroups(updatedGroups, user.email);
+                
+                // Add the new mock members to the global pool so they render
+                setGroupMembers(prev => [...prev, ...mockMembers]);
+                
+                showToast(`Joined squad "${mockGroup.name}"! Watch out, they are highly active.`, 'success');
               }
             }}
           />

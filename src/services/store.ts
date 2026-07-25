@@ -151,6 +151,83 @@ export class StoreService {
     }
   }
 
+  // --- Simulated Multiplayer Engine ---
+  
+  static generateRivals(baseLevel: number, count: number = 5): GroupMember[] {
+    const names = ['Alex Chen', 'Sarah Miller', 'David Kumar', 'Elena Rostova', 'Marcus Johnson', 'Nina Patel', 'Sam Wright'];
+    const titles = ['10x Engineer', 'Consistency Machine', 'Early Riser', 'Design Lead', 'Code Ninja', 'Product Hunter'];
+    
+    return Array.from({ length: count }).map((_, idx) => {
+      const lvl = Math.max(1, baseLevel + (Math.floor(Math.random() * 5) - 2)); // Level +/- 2
+      const streak = Math.floor(Math.random() * 20);
+      return {
+        id: `rival_${Date.now()}_${idx}`,
+        username: names[idx % names.length],
+        email: `rival${idx}@demo.app`,
+        profilePic: `https://api.dicebear.com/7.x/bottts/svg?seed=${names[idx % names.length]}`,
+        bio: titles[idx % titles.length],
+        timezone: 'Asia/Kolkata',
+        darkTheme: true,
+        currentStreak: streak,
+        longestStreak: streak + Math.floor(Math.random() * 10),
+        xp: lvl * 500 - (Math.floor(Math.random() * 200)),
+        level: lvl,
+        rank: lvl > 5 ? 'Elite Grinder' : 'Pro Grinder',
+        totalGoals: 50 + streak * 3,
+        completedGoals: 45 + streak * 3,
+        failedGoals: 2,
+        skippedGoals: 3,
+        consistencyRate: 85 + Math.floor(Math.random() * 14),
+        successRate: 88 + Math.floor(Math.random() * 11),
+        avgCompletionTimeMins: 30,
+        mostProductiveHour: '08:00 AM',
+        mostProductiveDay: 'Monday',
+        badgesUnlocked: [],
+        moodEmoji: ['🔥', '⚡', '💪', '🎯'][Math.floor(Math.random() * 4)],
+        onlineStatus: Math.random() > 0.5 ? 'online' : 'grinding',
+        lastSeen: 'Just now',
+        heatmapData: {},
+        todayPercentage: Math.floor(Math.random() * 100),
+        weeklyPercentage: 80 + Math.floor(Math.random() * 20),
+        monthlyPercentage: 85,
+        currentGoalCount: 4
+      };
+    });
+  }
+
+  static generateMockSquad(code: string, ownerId: string): { group: Group, members: GroupMember[] } {
+    const squadNames = ['Alpha Hustlers', 'Midnight Coders', '5AM Club', 'Iron Resolve', 'Titan Syndicate'];
+    const name = squadNames[Math.floor(Math.random() * squadNames.length)];
+    const rivals = this.generateRivals(3, 3); // Generate 3 mock members
+    
+    const now = new Date().toISOString();
+    
+    const memberData: Record<string, { joinedAt: string; xp: number }> = {
+      [ownerId]: { joinedAt: now, xp: 0 }
+    };
+    rivals.forEach(r => {
+      memberData[r.id] = { joinedAt: now, xp: Math.floor(Math.random() * 500) };
+    });
+
+    const group: Group = {
+      id: 'grp_sim_' + Date.now(),
+      name,
+      description: 'A highly active simulated accountability squad.',
+      icon: ['⚡', '🐺', '⚔️', '🦅'][Math.floor(Math.random() * 4)],
+      code,
+      isPrivate: false,
+      ownerId: rivals[0].id,
+      adminIds: [rivals[0].id],
+      memberIds: [ownerId, ...rivals.map(r => r.id)],
+      memberData,
+      createdAt: now
+    };
+
+    return { group, members: rivals };
+  }
+  
+  // ------------------------------------
+
   static getGoals(email?: string): Goal[] {
     const key = this.getKey(email, 'goals');
     const raw = localStorage.getItem(key);
