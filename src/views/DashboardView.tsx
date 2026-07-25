@@ -367,33 +367,33 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           <>
                             <button
                               onClick={() => handleCompleteGoal(g.id, g.difficulty)}
-                              className="p-2 rounded-xl bg-[#10B981]/15 hover:bg-[#10B981]/30 border border-[#10B981]/30 text-[#10B981] transition-colors"
+                              className="p-2 rounded-xl bg-[#10B981]/15 hover:bg-[#10B981]/30 border border-[#10B981]/30 text-[#10B981] transition-colors flex items-center gap-1 text-[10px] font-bold"
                               title="Mark Completed"
                             >
-                              <CheckCircle2 className="w-4 h-4" />
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Done
                             </button>
                             <button
                               onClick={() => onUpdateGoalStatus(g.id, 'failed')}
-                              className="p-2 rounded-xl bg-[#EF4444]/15 hover:bg-[#EF4444]/30 border border-[#EF4444]/30 text-[#EF4444] transition-colors"
+                              className="p-2 rounded-xl bg-[#EF4444]/15 hover:bg-[#EF4444]/30 border border-[#EF4444]/30 text-[#EF4444] transition-colors flex items-center gap-1 text-[10px] font-bold"
                               title="Mark Failed"
                             >
-                              <XCircle className="w-4 h-4" />
+                              <XCircle className="w-3.5 h-3.5" /> Failed
                             </button>
                             <button
                               onClick={() => onUpdateGoalStatus(g.id, 'skipped')}
-                              className="p-2 rounded-xl bg-[#F59E0B]/15 hover:bg-[#F59E0B]/30 border border-[#F59E0B]/30 text-[#F59E0B] transition-colors"
+                              className="p-2 rounded-xl bg-[#F59E0B]/15 hover:bg-[#F59E0B]/30 border border-[#F59E0B]/30 text-[#F59E0B] transition-colors flex items-center gap-1 text-[10px] font-bold"
                               title="Skip Goal"
                             >
-                              <SkipForward className="w-4 h-4" />
+                              <SkipForward className="w-3.5 h-3.5" /> Skip
                             </button>
                             
                             {g.targetDay === 'today' && (
                               <button
                                 onClick={() => onRollOverGoal(g.id)}
-                                className="p-2 rounded-xl bg-[#8B5CF6]/15 hover:bg-[#8B5CF6]/30 border border-[#8B5CF6]/30 text-[#8B5CF6] transition-colors"
+                                className="p-2 rounded-xl bg-[#8B5CF6]/15 hover:bg-[#8B5CF6]/30 border border-[#8B5CF6]/30 text-[#8B5CF6] transition-colors flex items-center gap-1 text-[10px] font-bold"
                                 title="Roll Over to Tomorrow"
                               >
-                                <ArrowRight className="w-4 h-4" />
+                                <ArrowRight className="w-3.5 h-3.5" /> Roll Over
                               </button>
                             )}
                           </>
@@ -408,10 +408,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         <div className="flex items-center gap-1 border-l border-[#222] pl-2 ml-1">
                           <button
                             onClick={() => onEditGoal(g)}
-                            className="p-2 text-[#9CA3AF] hover:text-white transition-colors"
+                            className="p-2 text-[#9CA3AF] hover:text-white transition-colors flex items-center gap-1 text-[10px] font-bold"
                             title="Edit Goal"
                           >
-                            <Edit3 className="w-4 h-4" />
+                            <Edit3 className="w-3.5 h-3.5" /> Edit
                           </button>
                           <button
                             onClick={() => {
@@ -419,10 +419,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                                 onDeleteGoal(g.id);
                               }
                             }}
-                            className="p-2 text-[#EF4444] hover:text-[#DC2626] transition-colors"
+                            className="p-2 text-[#EF4444] hover:text-[#DC2626] transition-colors flex items-center gap-1 text-[10px] font-bold"
                             title="Delete Goal"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3.5 h-3.5" /> Delete
                           </button>
                         </div>
                       </div>

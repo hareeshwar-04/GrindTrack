@@ -42,6 +42,7 @@ const EMPTY_USER: UserProfile = {
 export function App() {
   // Auth state: null = checking, false = not logged in, true = logged in
   const [authState, setAuthState] = useState<'loading' | 'unauthenticated' | 'verified' | 'authenticated'>('loading');
+  const [verifyReason, setVerifyReason] = useState<'signin' | 'signup' | 'session'>('signin');
   const [viewHistory, setViewHistory] = useState<string[]>(['dashboard']);
   const [activeView, setActiveView] = useState('dashboard');
   
@@ -95,7 +96,7 @@ export function App() {
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
 
   // Core function: Load all data for a specific user email
-  const loadUserData = useCallback((email: string, username?: string) => {
+  const loadUserData = useCallback((email: string, username?: string, reason?: 'signin' | 'signup' | 'session') => {
     localStorage.setItem('grindtrack_active_email', email);
 
     const loadedUser = StoreService.getUser(email);
@@ -127,6 +128,7 @@ export function App() {
     }]);
     
     handleSetActiveView('dashboard');
+    setVerifyReason(reason || 'signin');
     setAuthState('verified');
   }, []);
 
@@ -146,7 +148,7 @@ export function App() {
       if (session?.user?.email) {
         const email = session.user.email;
         const username = session.user.user_metadata?.username || email.split('@')[0];
-        loadUserData(email, username);
+        loadUserData(email, username, 'session');
       } else {
         setAuthState('unauthenticated');
       }
@@ -159,7 +161,10 @@ export function App() {
       if (event === 'SIGNED_IN' && session?.user?.email) {
         const email = session.user.email;
         const username = session.user.user_metadata?.username || email.split('@')[0];
-        loadUserData(email, username);
+        // Detect if this is a fresh email verification (user confirmed their email)
+        const isEmailVerify = session.user.email_confirmed_at && 
+          (Date.now() - new Date(session.user.email_confirmed_at).getTime()) < 60000;
+        loadUserData(email, username, isEmailVerify ? 'signup' : 'signin');
       } else if (event === 'SIGNED_OUT') {
         localStorage.removeItem('grindtrack_active_email');
         setUser(EMPTY_USER);
@@ -584,9 +589,19 @@ export function App() {
 
         {/* Text */}
         <div className="text-center space-y-2 animate-fade-in">
-          <h2 className="font-display font-extrabold text-2xl text-white">Successfully Verified!</h2>
+          <h2 className="font-display font-extrabold text-2xl text-white">
+            {verifyReason === 'signup' 
+              ? 'Email Verified Successfully! 🎉' 
+              : verifyReason === 'session' 
+                ? 'Session Restored!' 
+                : 'Signed In Successfully!'}
+          </h2>
           <p className="text-sm text-[#9CA3AF]">
-            Welcome back, <span className="text-[#00E5FF] font-bold">{user.username || 'Grinder'}</span>. Loading your dashboard...
+            {verifyReason === 'signup' 
+              ? <span>Your account is all set, <span className="text-[#10B981] font-bold">{user.username || 'Grinder'}</span>! Let's start grinding.</span>
+              : verifyReason === 'session'
+                ? <span>Welcome back, <span className="text-[#00E5FF] font-bold">{user.username || 'Grinder'}</span>. Picking up where you left off...</span>
+                : <span>Welcome back, <span className="text-[#00E5FF] font-bold">{user.username || 'Grinder'}</span>. Loading your dashboard...</span>}
           </p>
         </div>
 
@@ -614,7 +629,7 @@ export function App() {
 
   // Not authenticated — show landing page
   if (authState === 'unauthenticated') {
-    return <LandingView onLoginSuccess={(email, username) => loadUserData(email, username)} />;
+    return <LandingView onLoginSuccess={(email, username, reason) => loadUserData(email, username, reason)} />;
   }
 
   // Authenticated — show main app

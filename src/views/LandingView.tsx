@@ -4,7 +4,7 @@ import { LocalAuth } from '../services/localAuth';
 import { Zap, Flame, Users, Shield, ArrowRight, CheckCircle2, Lock, Mail, User, Sparkles, Trophy, Eye, EyeOff } from 'lucide-react';
 
 interface LandingViewProps {
-  onLoginSuccess: (email: string, username: string) => void;
+  onLoginSuccess: (email: string, username: string, reason?: 'signin' | 'signup' | 'session') => void;
 }
 
 export const LandingView: React.FC<LandingViewProps> = ({ onLoginSuccess }) => {
@@ -52,7 +52,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onLoginSuccess }) => {
             } else {
               const user = LocalAuth.signIn(email, password);
               setSuccessMsg('Signed in! Loading your dashboard...');
-              onLoginSuccess(user.email, user.username);
+              onLoginSuccess(user.email, user.username, 'signin');
             }
           } catch (err: any) {
             setErrorMsg(err.message);
