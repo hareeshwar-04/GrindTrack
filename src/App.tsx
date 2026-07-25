@@ -41,7 +41,7 @@ const EMPTY_USER: UserProfile = {
 
 export function App() {
   // Auth state: null = checking, false = not logged in, true = logged in
-  const [authState, setAuthState] = useState<'loading' | 'unauthenticated' | 'authenticated'>('loading');
+  const [authState, setAuthState] = useState<'loading' | 'unauthenticated' | 'verified' | 'authenticated'>('loading');
   const [viewHistory, setViewHistory] = useState<string[]>(['dashboard']);
   const [activeView, setActiveView] = useState('dashboard');
   
@@ -127,7 +127,7 @@ export function App() {
     }]);
     
     handleSetActiveView('dashboard');
-    setAuthState('authenticated');
+    setAuthState('verified');
   }, []);
 
   // Listen for Supabase auth state (single source of truth)
@@ -195,6 +195,13 @@ export function App() {
       };
       setNotifications(prev => [newNotif, ...prev]);
     }
+  }, [authState]);
+
+  // Auto-transition from 'verified' splash to 'authenticated' after 2.5 seconds
+  useEffect(() => {
+    if (authState !== 'verified') return;
+    const timer = setTimeout(() => setAuthState('authenticated'), 2500);
+    return () => clearTimeout(timer);
   }, [authState]);
 
   // Keyboard shortcut: Ctrl+K / ⌘K to open search
@@ -555,6 +562,52 @@ export function App() {
           </div>
         </div>
         <p className="text-sm text-slate-400 font-medium animate-pulse">Loading your dashboard...</p>
+      </div>
+    );
+  }
+
+  // Verified splash screen — shown briefly after successful login
+  if (authState === 'verified') {
+    return (
+      <div className="min-h-screen bg-[#080808] flex flex-col items-center justify-center gap-6 overflow-hidden">
+        {/* Animated glow ring */}
+        <div className="relative">
+          <div className="absolute inset-0 w-28 h-28 rounded-full bg-gradient-to-tr from-[#00E5FF] to-[#10B981] blur-2xl opacity-40 animate-pulse" />
+          <div className="relative w-28 h-28 rounded-full bg-gradient-to-tr from-[#00E5FF] to-[#10B981] p-1 shadow-[0_0_40px_rgba(16,185,129,0.4)]">
+            <div className="w-full h-full bg-[#080808] rounded-full flex items-center justify-center">
+              <svg className="w-12 h-12 text-[#10B981]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 6 9 17l-5-5" className="animate-[draw_0.6s_ease-out_0.3s_both]" style={{ strokeDasharray: 30, strokeDashoffset: 30, animation: 'draw 0.6s ease-out 0.3s forwards' }} />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        {/* Text */}
+        <div className="text-center space-y-2 animate-fade-in">
+          <h2 className="font-display font-extrabold text-2xl text-white">Successfully Verified!</h2>
+          <p className="text-sm text-[#9CA3AF]">
+            Welcome back, <span className="text-[#00E5FF] font-bold">{user.username || 'Grinder'}</span>. Loading your dashboard...
+          </p>
+        </div>
+
+        {/* Progress bar */}
+        <div className="w-64 h-1.5 bg-[#1a1a1a] rounded-full overflow-hidden mt-2">
+          <div
+            className="h-full bg-gradient-to-r from-[#00E5FF] to-[#10B981] rounded-full"
+            style={{ animation: 'progressFill 2.2s ease-in-out forwards' }}
+          />
+        </div>
+
+        {/* Inline keyframes */}
+        <style>{`
+          @keyframes draw {
+            to { stroke-dashoffset: 0; }
+          }
+          @keyframes progressFill {
+            from { width: 0%; }
+            to { width: 100%; }
+          }
+        `}</style>
       </div>
     );
   }
